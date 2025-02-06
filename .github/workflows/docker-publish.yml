@@ -35,12 +35,11 @@ jobs:
       - name: add env vars
         run: |
           echo "env=$(git rev-parse --short $GITHUB_SHA)" >> "$GITHUB_ENV"
-          echo "branch=$(echo ${GITHUB_REF#refs/heads/})" >> "$GITHUB_ENV"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ env.branch }}:${{ env.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.sha }}
           platforms: 
             linux/amd64
