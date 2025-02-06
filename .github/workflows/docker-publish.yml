@@ -36,6 +36,6 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$(git rev-parse --short HEAD)
           platforms: 
             linux/amd64
