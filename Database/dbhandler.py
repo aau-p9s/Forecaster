@@ -28,9 +28,8 @@ class DbConnection:
         query = 'INSERT INTO models ("Id", "Name", "ModelBin", "TrainedTime") VALUES (%s, %s, %s, now()) RETURNING *; '
         params = (str(uuid.uuid4()), modelname, psycopg2.Binary(binary_data))
         self.cursor.execute(query, params)
+        self.connection.commit()
         return self.cursor.fetchone()
     
-        
-
 def gen_uuid():
     return str(uuid.uuid4())
