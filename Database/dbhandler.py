@@ -7,6 +7,11 @@ class DbConnection:
         self.cursor = self.connection.cursor()
     
     def execute_query(self, query_string, params=None):
+        """Executes query given a querystring and optional parameters.
+        Args:
+            query_string: Sql query statement
+            params: Query parameters
+        """
         if params == None:
             self.cursor.execute(query_string)
         else:
@@ -15,21 +20,46 @@ class DbConnection:
         self.connection.commit()
         return data
     
-    # Following are the actual query statements
-    def get_all(self):
-        return self.execute_query("SELECT * from models;")
+    def close(self):
+        """Closes the database connection."""
+        self.connection.close()
+
+class ModelRepository:
+    def __init__(self, db: DbConnection):
+        self.db = db
+
+    def get_all_models(self):
+        return self.db.execute_query("SELECT * from models;")
     
     def get_by_model_name(self, modelname):
-        return self.execute_query(f"SELECT * from models WHERE Name = {modelname} ORDER BY TrainedTime ASC;")
+        return self.db.execute_query('SELECT * FROM models WHERE "Name" = %s ORDER BY "TrainedTime" ASC LIMIT 1;', (modelname,))
     
-    def insert(self, modelname, modelpath):
+    def insert_model(self, modelname, modelpath):
         with open(modelpath, "rb") as file:
             binary_data = file.read()
         query = 'INSERT INTO models ("Id", "Name", "ModelBin", "TrainedTime") VALUES (%s, %s, %s, now()) RETURNING *; '
         params = (str(uuid.uuid4()), modelname, psycopg2.Binary(binary_data))
-        self.cursor.execute(query, params)
-        self.connection.commit()
-        return self.cursor.fetchone()
+        return self.db.execute_query(query, params)
+    
+class ForecastRepository:
+    def __init__(self, db: DbConnection):
+        self.db = db
+
+    def insert_forecast(self, model_id, timestamp, value):
+        """Inserts a forecast record linked to a model."""
+        query = 'INSERT INTO forecasts ("Id", "ModelId", "Timestamp", "Value") VALUES (%s, %s, %s, %s) RETURNING *;'
+        params = (str(uuid.uuid4()), model_id, timestamp, value)
+        return self.db.execute_query(query, params, fetch_one=True)
+
+    def get_forecasts_by_model(self, model_id):
+        """Gets all forecasts for a given model."""
+        query = 'SELECT * FROM forecasts WHERE "ModelId" = %s ORDER BY "Timestamp" ASC;'
+        return self.db.execute_query(query, (model_id,))
+
+    def get_latest_forecast(self, model_id):
+        """Gets the latest forecast for a model."""
+        query = 'SELECT * FROM forecasts WHERE "ModelId" = %s ORDER BY "Timestamp" DESC LIMIT 1;'
+        return self.db.execute_query(query, (model_id,), fetch_one=True)
     
 def gen_uuid():
     return str(uuid.uuid4())
