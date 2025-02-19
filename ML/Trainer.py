@@ -1,11 +1,5 @@
-import datetime
-class Model:
-    def __init__(self, name, binary, serviceId):
-        self.name = name
-        self.binary = binary
-        self.trainedTime = datetime.date.today()
-        self.serviceId = serviceId
 
+from ML.Model import Model
 class Trainer:
     trained_models = {}
     def __init__(self, models, serviceId):

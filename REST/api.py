@@ -1,11 +1,13 @@
 from flask import Flask, Response, json
 from flask_restful import Resource, Api, reqparse
+from Database.ForecastRepository import ForecastRepository
+from Database.ModelRepository import ModelRepository
 from ML.Trainer import Trainer
 import threading
 from threading import Thread
 from Utils.ReturnableThread import ReturnableThread
 from ML.Forecaster import Forecaster
-from Database.dbhandler import DbConnection, ModelRepository, ForecastRepository
+from Database.dbhandler import DbConnection
 
 trainer_threads = []
 forecaster_threads = []
@@ -120,7 +122,6 @@ def get_finished_threads(type, serviceId):
     else:
         raise ValueError("Invalid thread type. Use 'forecaster' or 'trainer'.")
   
-
 def start_api():
     app = Flask(__name__)
     api = Api(app)  

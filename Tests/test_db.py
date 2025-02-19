@@ -1,6 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
-from Database.dbhandler import ModelRepository, ForecastRepository, SettingsRepository, ServiceRepository
+from Database.ForecastRepository import ForecastRepository
+from Database.ModelRepository import ModelRepository
+from Database.SettingsRepository import SettingsRepository
+from Database.ServiceRepository import ServiceRepository
 
 @pytest.fixture
 def mock_db():
