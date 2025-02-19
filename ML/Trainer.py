@@ -1,4 +1,3 @@
-
 from ML.Model import Model
 class Trainer:
     trained_models = {}
