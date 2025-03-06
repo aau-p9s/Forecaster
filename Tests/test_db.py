@@ -53,6 +53,3 @@ def test_get_latest_forecast(mock_db):
         fetch_one=True
     )
     assert result[0] == ("5678", "1234", 0.95, "service_1")  # Ensure forecast ID matches
-
-def test_fail():
-    assert False == True
