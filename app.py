@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from REST.api import start_api
 from Database.dbhandler import DbConnection, ModelRepository, ForecastRepository
 from threading import Thread
