@@ -1,4 +1,3 @@
-
 from ML.Model import Model
 class Trainer:
     trained_models = {}
@@ -13,4 +12,8 @@ class Trainer:
             # 2. return trained model
             self.trained_models.add(Model(model, None, self.serviceId))
         return self.trained_models
-        
+    
+    def train_ensemble(self, ensemble_candidates):
+        # 1. Train ensemble model using Darts EnsembleTraining module (in other repository)
+        # 2. return trained model
+        pass
