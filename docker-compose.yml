@@ -11,6 +11,7 @@ services:
 
   forecaster:
     image: ghcr.io/aau-p9s/forecaster:latest
+    restart: always
     environment:
       FORECASTER__PGSQL__DATABASE: autoscaler
       FORECASTER__PGSQL__USER: root
