@@ -48,7 +48,7 @@ def test_get_latest_forecast(mock_db):
     result = forecast_repo.get_latest_forecast("1234", "service_1")
 
     mock_db.execute_query.assert_called_once_with(
-        'SELECT * FROM forecasts WHERE "ModelId" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
+        'SELECT * FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
         ("1234", "service_1")
     )
     assert result[0] == ("5678", "1234", 0.95, "service_1")  # Ensure forecast ID matches
