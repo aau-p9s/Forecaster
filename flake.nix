@@ -10,6 +10,7 @@
                     flask
                     flask-restx
                     psycopg2
+                    pytest
                 ]))
             ];
         };

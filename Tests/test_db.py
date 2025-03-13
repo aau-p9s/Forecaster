@@ -22,7 +22,7 @@ def test_get_all_models_by_service(mock_db):
     result = model_repo.get_all_models_by_service("service_1")
 
     mock_db.execute_query.assert_called_once_with(
-        'SELECT * from models WHERE "ServiceId" = %s;', ("service_1",)
+        'SELECT * from models WHERE "serviceid" = %s;', ("service_1",)
     )
     assert len(result) == 1
     assert result[0][1] == "MyModel"  # Ensure the model name is correct
@@ -48,7 +48,7 @@ def test_get_latest_forecast(mock_db):
     result = forecast_repo.get_latest_forecast("1234", "service_1")
 
     mock_db.execute_query.assert_called_once_with(
-        'SELECT * FROM forecasts WHERE "ModelId" = %s AND "ServiceId" = %s ORDER BY "Timestamp" DESC LIMIT 1;',
+        'SELECT * FROM forecasts WHERE "ModelId" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
         ("1234", "service_1"),
         fetch_one=True
     )
