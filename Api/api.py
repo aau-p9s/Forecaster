@@ -31,16 +31,6 @@ trainer_threads = []
 forecaster_threads = []
 
 
-@api.route("/forecast/<serviceId>")
-class Forecast(Resource):
-    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"something died..."})
-    def get(self, serviceId):
-        forecast = forecast_repository.get_latest_forecast_by_service(serviceId)
-        if all_threads_finished("forecaster", serviceId):
-            return Response(status=200, response=dumps({"message": "Returned new and fresh forecast", "forecast": forecast}))
-        else:
-            return Response(status=202, response=dumps({"message": "Forecasting in progress. Returned archaic forecast", "forecast": forecast}))
-
 @api.route("/train/<serviceId>")
 class Train(Resource):
     @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"Something ML died!!!!"})
@@ -88,21 +78,6 @@ class Predict(Resource):
         # Forecast is not ready
         else:
             return Response(status=202, response=dumps({"message": "Forecast in progress"}))
-
-@api.route("/services")
-class Services(Resource):
-    @api.doc(responses={200:"ok"})
-    def get(self):
-        services = service_repository.get_all_services()
-        return Response(status=200, response=dumps({"message":"Got services", "services":services}))
-
-@api.route("/service/<serviceId>")
-class Service(Resource):
-    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok"})
-    def get(self, serviceId):
-        service = service_repository.get_service_by_id(serviceId)
-        return Response(status=200, response=dumps({"message":"Got service", "service":service}))
-        
 
 def get_running_threads(type, serviceId):
     """Get running threads for a given type and serviceId.
