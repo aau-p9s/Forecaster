@@ -1,38 +1,41 @@
-from flask import Flask, Response, json
-from flask_restful import Resource, Api, reqparse
+from flask import Flask, Response
+from flask_restx import Api, Resource
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
-from ML.Trainer import Trainer
-import threading
-from threading import Thread
-from Utils.ReturnableThread import ReturnableThread
-from ML.Forecaster import Forecaster
+from Database.ServiceRepository import ServiceRepository
 from Database.dbhandler import DbConnection
+from json import dumps
+from ML.Forecaster import Forecaster
+from ML.Trainer import Trainer
+from Utils.ReturnableThread import ReturnableThread
+from Utils.getEnv import getEnv
 
-trainer_threads = []
-forecaster_threads = []
-parser = reqparse.RequestParser()
-parser.add_argument('modelname', type=str, help='Darts model name')
-parser.add_argument('serviceid', type=str, help='Kubernetes service id')
-db = DbConnection("p10s", "postgres", "password", "localhost", 5432)
+app = Flask(__name__)
+api = Api(app, 
+    version='1.0', 
+    title='Forecaster API', 
+    description='aau-p9s/Forecaster API service for machine learning predictive autoscaling'
+)
+database = getEnv("FORECASTER__PGSQL__DATABASE", "autoscaler")
+user = getEnv("FORECASTER__PGSQL__USER", "root")
+password = getEnv("FORECASTER__PGSQL__PASSWORD", "password")
+addr = getEnv("FORECASTER__PGSQL__ADDR", "0.0.0.0")
+port = getEnv("FORECASTER__PGSQL__PORT", "5432")
+api_addr = getEnv("FORECASTER__ADDR", "0.0.0.0")
+api_port = getEnv("FORECASTER__PORT", "8081")
+db = DbConnection(database, user, password, addr, port)
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
+service_repository = ServiceRepository(db)
+trainer_threads = []
+forecaster_threads = []
 
-class Forecast(Resource):
-    def get(self):
-        args = parser.parse_args()
-        serviceId = args['serviceid']
-        forecast = forecast_repository.get_latest_forecast_by_service(serviceId)
-        if all_threads_finished("forecaster", serviceId):
-            return Response(status=200, response=json.dumps({"message": "Returned new and fresh forecast", "forecast": forecast}))
-        else:
-            return Response(status=202, response=json.dumps({"message": "Forecasting in progress. Returned archaic forecast", "forecast": forecast}))
 
+@api.route("/train/<serviceId>")
 class Train(Resource):
-    def post(self):
+    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"Something ML died!!!!"})
+    def post(self, serviceId):
         # Retrain models on new thread and predict + copy to DB
-        args = parser.parse_args(strict=True)
-        serviceId = args['serviceid']
         models = model_repository.get_all_models_by_service(serviceId)
 
         # Check if an active forecasting thread exists for this service
@@ -46,15 +49,16 @@ class Train(Resource):
             for t in finished_threads: # Allows for multi-threaded training for each model of a service in future (All models for a service are trained on one thread for now)
                 for m in t.result:
                     model_repository.insert_model(m.name, m.binary, m.trainedTime, m.serviceId)
-            return Response(status=200, response=json.dumps({"message": f"All models trained for {serviceId}" }))
+            return Response(status=200, response=dumps({"message": f"All models trained for {serviceId}" }))
         else:
-            return Response(status=202, response=json.dumps({"message": f"Training in progress for {serviceId}"}))
-        
+            return Response(status=202, response=dumps({"message": f"Training in progress for {serviceId}"}))
+
+
+@api.route("/predict/<serviceId>")
 class Predict(Resource):
-    def get(self):
+    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    def get(self, serviceId):
         # Create new forecast on a new thread and copy to DB
-        args = parser.parse_args(strict=True)
-        serviceId = args["serviceid"]
         models = model_repository.get_all_models_by_service(serviceId)
 
         # Check if an active forecasting thread exists for this service
@@ -70,10 +74,10 @@ class Predict(Resource):
                 for f in t.result: # Allows for multi-threaded forecasting for each model of a service in future (Only one forecast is returned for now)
                     forecast_repository.insert_forecast(f.modelId, f.forecast, serviceId)
                     new_forecast = f.forecast
-                    return Response(status=200, response=json.dumps({"message": "Forecast created", "forecast": new_forecast}))
+                    return Response(status=200, response=dumps({"message": "Forecast created", "forecast": new_forecast}))
         # Forecast is not ready
         else:
-            return Response(status=202, response=json.dumps({"message": "Forecast in progress"}))
+            return Response(status=202, response=dumps({"message": "Forecast in progress"}))
 
 def get_running_threads(type, serviceId):
     """Get running threads for a given type and serviceId.
@@ -122,11 +126,11 @@ def get_finished_threads(type, serviceId):
     else:
         raise ValueError("Invalid thread type. Use 'forecaster' or 'trainer'.")
   
-def start_api():
-    app = Flask(__name__)
-    api = Api(app)  
-    api.add_resource(Forecast, '/forecast')
-    api.add_resource(Train, '/train')
-    api.add_resource(Predict, '/predict')
-    app.run(debug=True)
 
+
+def start_api():
+
+    app.run(api_addr, api_port, debug=True)
+
+if __name__ == "__main__":
+    app.run(api_addr, api_port)

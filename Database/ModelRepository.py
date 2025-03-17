@@ -7,14 +7,14 @@ class ModelRepository:
         self.db = db
 
     def get_all_models_by_service(self, serviceId):
-        return self.db.execute_query('SELECT * from models WHERE "ServiceId" = %s;', (serviceId,))
+        return self.db.execute_query('SELECT * from models WHERE "serviceid" = %s;', (serviceId,))
 
     def get_by_modelname_and_service(self, modelname, serviceId):
-        return self.db.execute_query('SELECT * FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "TrainedTime" ASC LIMIT 1;', (modelname, serviceId))
+        return self.db.execute_query('SELECT * FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', (modelname, serviceId))
 
     def insert_model(self, modelname, modelpath, trainedTime, serviceId):
         with open(modelpath, "rb") as file:
             binary_data = file.read()
-        query = 'INSERT INTO models ("Id", "Name", "ModelBin", "TrainedTime", "ServiceId") VALUES (%s, %s, %s, %s, %s) RETURNING *; '
+        query = 'INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid") VALUES (%s, %s, %s, %s, %s) RETURNING *; '
         params = (gen_uuid(), modelname, psycopg2.Binary(binary_data), trainedTime, serviceId)
         return self.db.execute_query(query, params)

@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-from REST.api import start_api
-from Database.dbhandler import DbConnection
-from threading import Thread
+from Api.api import *
 
 def insert_model():
     # model_path = "Assets\\autotheta_model.pth"
@@ -10,6 +8,6 @@ def insert_model():
     # print(f"Inserted: {res}")
     pass
 
+
 if __name__ == '__main__':
-    db = DbConnection("p10s", "postgres", "password", "localhost", 5432)
     start_api()
