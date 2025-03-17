@@ -129,7 +129,6 @@ def get_finished_threads(type, serviceId):
 
 
 def start_api():
-
     app.run(api_addr, api_port, debug=True)
 
 if __name__ == "__main__":
