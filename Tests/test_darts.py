@@ -5,7 +5,7 @@ from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
 from darts.metrics import rmse
 from darts.timeseries import TimeSeries
 import numpy as np
-from ML.Darts.Training.ensemble_training import EnsembleTraining   # Assuming your class is saved in ensemble_training.py
+from ML.Darts.Training.ensemble_training import EnsembleTrainer
 
 @pytest.fixture
 def sample_time_series():
