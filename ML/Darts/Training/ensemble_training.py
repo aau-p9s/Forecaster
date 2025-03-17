@@ -9,7 +9,7 @@ import numpy as np
 import inspect
 
 # An ensemble model should be created using the best models found in the tuning process to check if the ensemble model can improve the forecast
-class EnsembleTraining:
+class EnsembleTrainer:
 
     def __init__(self, candidate_models: list[ForecastingModel], series, forecast_period, split_train_val=0.75):
         self.candidate_models = candidate_models
@@ -45,7 +45,7 @@ class EnsembleTraining:
         return (rmse_error, forecast, ensemble_model) # Should save the backtest (forecast) to the database along with the model and the error
 
     def create_naive_ensemble_model(self):
-        """"Naive ensemble model that averages the forecasts of the candidate models to create a better forecast."""
+        """Naive ensemble model that averages the forecasts of the candidate models to create a better forecast."""
         
         all_models_equally_fit = all(model._fit_called for model in self.candidate_models)
 
@@ -75,21 +75,3 @@ class EnsembleTraining:
         rmse_error = rmse(self.validation_series, forecast)
         
         return (rmse_error, forecast, ensemble_model) # Should save the backtest (forecast) to the database along with the model and the error
-    
-if __name__ == "__main__":
-    values = np.random.rand(100)
-    series = TimeSeries.from_values(values)
-
-    model1 = models.ExponentialSmoothing()
-    model2 = models.ARIMA()
-    #model3 = models.NHiTSModel(12,12, n_epochs=20)
-    #model4 = models.TSMixerModel(12,12, n_epochs=20)
-    model1.fit(series)
-    model2.fit(series)
-    #model3.fit(series)
-    #model4.fit(series)
-    #learned_ensemble = EnsembleTraining([model3, model4], series, 12)
-    naive_ensemble = EnsembleTraining([model1, model2], series, 12)
-    error, forecast, model = naive_ensemble.create_naive_ensemble_model()
-    #error, forecast, model = naive_ensemble.create_learned_ensemble_model()
-    print(error)
