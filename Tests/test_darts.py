@@ -39,12 +39,12 @@ def pre_trained_global_models(sample_time_series):
 @pytest.fixture
 def ensemble_training_local(pre_trained_local_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTraining(pre_trained_local_models, sample_time_series, forecast_period=12)
+    return EnsembleTrainer(pre_trained_local_models, sample_time_series, forecast_period=12)
 
 @pytest.fixture
 def ensemble_training_global(pre_trained_global_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTraining(pre_trained_global_models, sample_time_series, forecast_period=12)
+    return EnsembleTrainer(pre_trained_global_models, sample_time_series, forecast_period=12)
 
 
 def test_learned_ensemble_model(ensemble_training_global):
