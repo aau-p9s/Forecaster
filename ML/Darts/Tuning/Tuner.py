@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
@@ -17,26 +14,28 @@ import logging
 import sys
 import inspect
 from darts.datasets import AirPassengersDataset
-import preprocessing
+import ML.Darts.Utils.preprocessing as preprocessing
 import handle_covariates as covariates
+import os
+from darts import TimeSeries
 
 class Tuner:
-    DEVICE_NAME = 1 # Use second GPU
-
-    def __init__(self, data_path, forecast_period, db_name="model-tuning"):
+    
+    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.num_workers = 8 if torch.cuda.is_available() else 0
         torch.set_float32_matmul_precision("medium")
+        self.gpu = gpu
         
         # Optuna vars
-        self.storage_name = f"sqlite:///{db_name}.db"
+        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
         
         #Load dataset
         #self.series = Utils.load_data(data_path, "min")
-        self.series = AirPassengersDataset().load()
+        self.series = data
         self.forecast_period = forecast_period
-        self.train_series, self.val_series = self.series.split_after(0.75)
+        self.train_series, self.val_series = self.series.split_after(train_val_split)
         self.models = [
             cls for name, cls in vars(models).items()
             if inspect.isclass(cls) and issubclass(cls, ForecastingModel)
@@ -44,7 +43,7 @@ class Tuner:
         self.past_covariates = None
         self.future_covariates = None
 
-    def tune_model(self, modelName, trials):
+    def __tune_model(self, modelName, trials):
         model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
         model_name = model.__name__
         
@@ -112,7 +111,7 @@ class Tuner:
         
         # Create Optuna study and optimize
         try:
-            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.storage_name, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study.optimize(objective, n_trials=trials, catch=(Exception, ))
         except Exception as err:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
@@ -121,7 +120,7 @@ class Tuner:
         for model in self.models:
             print(f"\Tuning {model}\n")
             try:
-                self.tune_model(model(), 75)
+                self.__tune_model(model(), 75)
                 print(f"\nDone with: {model}\n")
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
@@ -130,7 +129,8 @@ class Tuner:
         #    raise Exception(f"Model {modelName} not found")
         #print(f"Tuning {model.__name__}\n")
         try:
-            self.tune_model(modelName, 75)
+            self.__tune_model(modelName, 75)
             print(f"\nDone with: {modelName}\n")
+            return "Model Tuned"
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")

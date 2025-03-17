@@ -1,4 +1,4 @@
-from ML.Model import Model
+from ML.model import Model
 class Trainer:
     trained_models = {}
     def __init__(self, models, serviceId):

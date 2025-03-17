@@ -1,11 +1,11 @@
-FROM python:3.13
+FROM python:3.12-slim
 
 WORKDIR /src
 
 COPY . /src
 
-RUN if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
+RUN pip install -r requirements.txt
 
 RUN chmod +x /src/app.py
 
-ENTRYPOINT ["/src/app.py"]
+ENTRYPOINT ["python", "app.py"]
