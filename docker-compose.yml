@@ -9,7 +9,7 @@ services:
     ports:
       - "5432:5432"
 
-  optuna-db:
+  optuna_db:
     image: postgres
     container_name: optuna_db
     restart: always
