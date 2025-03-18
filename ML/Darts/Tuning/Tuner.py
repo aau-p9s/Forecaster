@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import optuna
 from darts.metrics import rmse
@@ -14,21 +13,22 @@ import logging
 import sys
 import inspect
 from darts.datasets import AirPassengersDataset
-import ML.Darts.Utils.preprocessing as preprocessing
 import handle_covariates as covariates
 import os
 from darts import TimeSeries
+from sqlalchemy import create_engine
 
 class Tuner:
     
-    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0):
+    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0, trials = 75):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.num_workers = 8 if torch.cuda.is_available() else 0
         torch.set_float32_matmul_precision("medium")
         self.gpu = gpu
         
         # Optuna vars
-        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
+        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://postgres:password@localhost:5432/optuna_db")
+        self.trials = trials
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
         
         #Load dataset
@@ -43,7 +43,7 @@ class Tuner:
         self.past_covariates = None
         self.future_covariates = None
 
-    def __tune_model(self, modelName, trials):
+    def __tune_model(self, modelName):
         model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
         model_name = model.__name__
         
@@ -112,7 +112,7 @@ class Tuner:
         # Create Optuna study and optimize
         try:
             study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
-            study.optimize(objective, n_trials=trials, catch=(Exception, ))
+            study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
         except Exception as err:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
 
@@ -120,7 +120,7 @@ class Tuner:
         for model in self.models:
             print(f"\Tuning {model}\n")
             try:
-                self.__tune_model(model(), 75)
+                self.__tune_model(model())
                 print(f"\nDone with: {model}\n")
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
@@ -129,7 +129,7 @@ class Tuner:
         #    raise Exception(f"Model {modelName} not found")
         #print(f"Tuning {model.__name__}\n")
         try:
-            self.__tune_model(modelName, 75)
+            self.__tune_model(modelName)
             print(f"\nDone with: {modelName}\n")
             return "Model Tuned"
         except Exception as err:

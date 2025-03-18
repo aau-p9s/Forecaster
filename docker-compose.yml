@@ -9,6 +9,18 @@ services:
     ports:
       - "5432:5432"
 
+  services:
+  optuna-db:
+    image: postgres
+    container_name: optuna_db
+    restart: always
+    environment:
+      POSTGRES_USER: optuna
+      POSTGRES_DB: optuna_db
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+
   forecaster:
     image: ghcr.io/aau-p9s/forecaster:latest
     restart: always
@@ -25,3 +37,7 @@ services:
 
     depends_on:
       - db
+      - optuna_db
+
+networks:
+  optuna-net:
