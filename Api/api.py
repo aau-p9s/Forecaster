@@ -41,7 +41,7 @@ class Train(Resource):
         # Retrain models on new thread and predict + copy to DB
         models = model_repository.get_all_models_by_service(serviceId)
         if not serviceId in trainers:
-            trainer = Trainer(models, serviceId, model_repository)
+            trainer = Trainer(models, serviceId, None, None, None, model_repository)
             trainers[serviceId] = {
                 "trainer":trainer,
                 "thread":Process(target=trainer.train_model)

@@ -1,8 +1,10 @@
 
-from ML.model import Model
-from Darts.Training.ensemble_training import EnsembleTrainer
+from Database.ModelRepository import ModelRepository
+from .Darts.Training.ensemble_training import EnsembleTrainer
+from ML.Model import Model
+
 class Trainer:
-    trained_models = {}
+    trained_models = []
     def __init__(self, models, serviceId, series, forecast_period, split_train_val, repository:ModelRepository):
         self.models = models
         self.serviceId = serviceId
