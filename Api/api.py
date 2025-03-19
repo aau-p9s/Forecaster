@@ -1,4 +1,3 @@
-from types import NoneType
 from flask import Flask, Response
 from flask_restx import Api, Resource
 from Database.ForecastRepository import ForecastRepository
@@ -7,9 +6,9 @@ from Database.ServiceRepository import ServiceRepository
 from Database.dbhandler import DbConnection
 from json import dumps
 from multiprocessing import Process
-from ML.forecaster import Forecaster
-from ML.trainer import Trainer
-from Utils.returnable_thread import ReturnableThread
+from ML.Forecaster import Forecast
+from ML.Forecaster import Forecaster
+from ML.Trainer import Trainer
 from Utils.getEnv import getEnv
 
 app = Flask(__name__)
@@ -92,57 +91,8 @@ class Predict(Resource):
         return Response(status=200, response=dumps({"message":"Forecast finished", "forecast":newest.forecast}))
 
 
-def get_running_threads(type, serviceId):
-    """Get running threads for a given type and serviceId.
-    Args:
-      type (str): "forecaster" or "trainer"
-      serviceId (str): The specific service ID to filter.
-    Returns:
-      list: Active threads of the specified type and serviceId.
-    """
-    if type == "trainer":
-        return [t for t in trainer_threads if t.is_alive() and t.name == serviceId]
-    elif type == "forecaster":
-        return [t for t in forecaster_threads if t.is_alive() and t.name == serviceId]
-    else:
-        raise ValueError("Invalid thread type. Use 'forecaster' or 'trainer'.")
-
-def all_threads_finished(type, serviceId):
-    """Check if all threads with a given serviceId have finished.
-    Args:
-      type (str): "forecaster" or "trainer"
-      serviceId (str): The specific service ID to check.
-    Returns:
-      bool: Whether all threads for the given serviceId have finished.
-    """
-    if type == "trainer":
-        return all(not t.is_alive() for t in trainer_threads if t.name == serviceId)
-    elif type == "forecaster":
-        return all(not t.is_alive() for t in forecaster_threads if t.name == serviceId)
-    else:
-        raise ValueError("Invalid thread type. Use 'forecaster' or 'trainer'.")
-    
-def get_finished_threads(type, serviceId):
-    """Get all finished threads with a given serviceId.
-    
-    Args:
-      type (str): "forecaster" or "trainer"
-      serviceId (str): The specific service ID to check.
-
-    Returns:
-      list: A list of finished threads matching the given serviceId.
-    """
-    if type == "trainer":
-        return [t for t in trainer_threads if t.name == serviceId and not t.is_alive()]
-    elif type == "forecaster":
-        return [t for t in forecaster_threads if t.name == serviceId and not t.is_alive()]
-    else:
-        raise ValueError("Invalid thread type. Use 'forecaster' or 'trainer'.")
-  
-
-
 def start_api():
-    app.run(api_addr, api_port, debug=True)
+    app.run(api_addr, int(api_port), debug=True)
 
 if __name__ == "__main__":
-    app.run(api_addr, api_port)
+    app.run(api_addr, int(api_port))
