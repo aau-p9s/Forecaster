@@ -1,4 +1,4 @@
-from flask import Flask, Response
+from flask import Flask, Response, request
 from flask_restx import Api, Resource
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
@@ -10,6 +10,7 @@ from ML.Forecaster import Forecast
 from ML.Forecaster import Forecaster
 from ML.Trainer import Trainer
 from Utils.getEnv import getEnv
+from ML.Darts.Tuning.tuner import Tuner
 
 app = Flask(__name__)
 api = Api(app, 
@@ -23,7 +24,7 @@ password = getEnv("FORECASTER__PGSQL__PASSWORD", "password")
 addr = getEnv("FORECASTER__PGSQL__ADDR", "0.0.0.0")
 port = getEnv("FORECASTER__PGSQL__PORT", "5432")
 api_addr = getEnv("FORECASTER__ADDR", "0.0.0.0")
-api_port = getEnv("FORECASTER__PORT", "8081")
+api_port = getEnv("FORECASTER__PORT", "8080")
 db = DbConnection(database, user, password, addr, port)
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
@@ -84,11 +85,27 @@ class Predict(Resource):
             t.join()
         else:
             thread.join()
+        return Response(status=200, response=dumps({"message": "Forecast in progress"}))
 
-        data = forecast_repository.get_latest_forecast_by_service(forecaster.serviceId)
-        newest = Forecast(data[0], data[1])
-        
-        return Response(status=200, response=dumps({"message":"Forecast finished", "forecast":newest.forecast}))
+@api.route("/tune/<modelName>")
+class Predict(Resource):
+    @api.doc(params={"modelName":"darts-model-name", "tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    def get(self, modelName):
+        tuningData = request.args.get("tuningData")
+        forecast_horizon = request.args.get("horizon")
+        t = Tuner(tuningData, forecast_horizon)
+        complete_study = t.tune_model_x(modelName)
+        return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
+
+@api.route("/tune/allModels")
+class Predict(Resource):
+    @api.doc(params={"tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    def get(self, tuningData, forecast_horizon):
+        tuningData = request.args.get("tuningData")
+        forecast_horizon = request.args.get("horizon")
+        t = Tuner(tuningData, forecast_horizon)
+        complete_study = t.tune_all_models()
+        return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
 
 
 def start_api():

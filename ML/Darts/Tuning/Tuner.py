@@ -21,11 +21,12 @@ from darts import TimeSeries
 
 class Tuner:
     
-    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0):
+    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0, trials = 75):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.num_workers = 8 if torch.cuda.is_available() else 0
         torch.set_float32_matmul_precision("medium")
         self.gpu = gpu
+        self.trials = trials
         
         # Optuna vars
         self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
@@ -43,7 +44,7 @@ class Tuner:
         self.past_covariates = None
         self.future_covariates = None
 
-    def __tune_model(self, modelName, trials):
+    def __tune_model(self, modelName):
         model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
         model_name = model.__name__
         
@@ -111,8 +112,10 @@ class Tuner:
         
         # Create Optuna study and optimize
         try:
-            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
-            study.optimize(objective, n_trials=trials, catch=(Exception, ))
+            #study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
+            return study
         except Exception as err:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
 
@@ -120,17 +123,15 @@ class Tuner:
         for model in self.models:
             print(f"\Tuning {model}\n")
             try:
-                self.__tune_model(model(), 75)
+                study = self.__tune_model(model())
                 print(f"\nDone with: {model}\n")
+                return study
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
     def tune_model_x(self, modelName):
-        #if model is None:
-        #    raise Exception(f"Model {modelName} not found")
-        #print(f"Tuning {model.__name__}\n")
         try:
-            self.__tune_model(modelName, 75)
+            study = self.__tune_model(modelName)
             print(f"\nDone with: {modelName}\n")
-            return "Model Tuned"
+            return study
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")
