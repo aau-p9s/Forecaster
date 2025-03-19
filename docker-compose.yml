@@ -25,3 +25,7 @@ services:
 
     depends_on:
       - db
+      - optuna_db
+
+networks:
+  optuna-net:

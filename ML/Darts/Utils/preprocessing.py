@@ -46,3 +46,6 @@ def load_data(data: str | list[float, int], granularity=None):
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
         ts = TimeSeries.from_dataframe(df, time_col=df.columns[0], value_cols=df.columns[1:].tolist(), freq=granularity)
         return ts
+
+def load_json_data(json_data):
+    return TimeSeries.from_json(json_data)
