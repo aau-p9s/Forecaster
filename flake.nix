@@ -12,6 +12,7 @@
                     psycopg2
                     pytest
                 ]))
+                postgresql
             ];
         };
     };

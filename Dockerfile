@@ -1,10 +1,10 @@
-FROM python:3.12-slim
+FROM unit8/darts:latest
 
 WORKDIR /src
 
 COPY . /src
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN chmod +x /src/app.py
 
