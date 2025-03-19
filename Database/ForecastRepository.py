@@ -27,7 +27,8 @@ class ForecastRepository:
         query = 'SELECT * FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;'
         return self.db.execute_query(query, (model_id, serviceId))
 
-    def get_latest_forecast_by_service(self, serviceId):
+    def get_latest_forecast_by_service(self, serviceId) -> tuple[str, float]:
         """Gets the latest forecast for a service."""
-        query = 'SELECT * FROM forecasts WHERE "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;'
-        return self.db.execute_query(query, (serviceId,))
+        query = 'SELECT modelid, forecast FROM forecasts WHERE "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;'
+        data = self.db.execute_query(query, (serviceId,))
+        return data[0][0], data[0][1]
