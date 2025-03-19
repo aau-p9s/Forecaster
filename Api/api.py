@@ -1,4 +1,4 @@
-from flask import Flask, Response
+from flask import Flask, Response, request
 from flask_restx import Api, Resource
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
@@ -9,6 +9,7 @@ from ML.forecaster import Forecaster
 from ML.trainer import Trainer
 from Utils.returnable_thread import ReturnableThread
 from Utils.getEnv import getEnv
+from ML.Darts.Tuning.tuner import Tuner
 
 app = Flask(__name__)
 api = Api(app, 
@@ -22,7 +23,7 @@ password = getEnv("FORECASTER__PGSQL__PASSWORD", "password")
 addr = getEnv("FORECASTER__PGSQL__ADDR", "0.0.0.0")
 port = getEnv("FORECASTER__PGSQL__PORT", "5432")
 api_addr = getEnv("FORECASTER__ADDR", "0.0.0.0")
-api_port = getEnv("FORECASTER__PORT", "8081")
+api_port = getEnv("FORECASTER__PORT", "8080")
 db = DbConnection(database, user, password, addr, port)
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
@@ -53,7 +54,6 @@ class Train(Resource):
         else:
             return Response(status=202, response=dumps({"message": f"Training in progress for {serviceId}"}))
 
-
 @api.route("/predict/<serviceId>")
 class Predict(Resource):
     @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500: "something died..."})
@@ -78,6 +78,26 @@ class Predict(Resource):
         # Forecast is not ready
         else:
             return Response(status=202, response=dumps({"message": "Forecast in progress"}))
+
+@api.route("/tune/<modelName>")
+class Predict(Resource):
+    @api.doc(params={"modelName":"darts-model-name", "tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    def get(self, modelName):
+        tuningData = request.args.get("tuningData")
+        forecast_horizon = request.args.get("horizon")
+        t = Tuner(tuningData, forecast_horizon)
+        complete_study = t.tune_model_x(modelName)
+        return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
+
+@api.route("/tune/allModels")
+class Predict(Resource):
+    @api.doc(params={"tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    def get(self, tuningData, forecast_horizon):
+        tuningData = request.args.get("tuningData")
+        forecast_horizon = request.args.get("horizon")
+        t = Tuner(tuningData, forecast_horizon)
+        complete_study = t.tune_all_models()
+        return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
 
 def get_running_threads(type, serviceId):
     """Get running threads for a given type and serviceId.

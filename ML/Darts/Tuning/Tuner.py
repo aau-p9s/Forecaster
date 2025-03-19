@@ -1,7 +1,7 @@
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
-from hyperparameters import HyperParameterConfig  # Import config from the external file
+from .hyperparameters import HyperParameterConfig  # Import config from the external file
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -13,10 +13,8 @@ import logging
 import sys
 import inspect
 from darts.datasets import AirPassengersDataset
-import handle_covariates as covariates
-import os
+from .handle_covariates import *
 from darts import TimeSeries
-from sqlalchemy import create_engine
 
 class Tuner:
     
@@ -27,13 +25,14 @@ class Tuner:
         self.gpu = gpu
         
         # Optuna vars
-        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://postgres:password@localhost:5432/optuna_db")
+        #self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://postgres:password@localhost:5431/optuna_db")
         self.trials = trials
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
         
         #Load dataset
         #self.series = Utils.load_data(data_path, "min")
         self.series = data
+        self.series = AirPassengersDataset().load()
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
         self.models = [
@@ -67,8 +66,8 @@ class Tuner:
                         # TODO: Implement handling of kwargs
 
                         if self.past_covariates is None and self.future_covariates is None:
-                            self.past_covariates = covariates.generate_past_covariates(self.series)
-                            self.future_covariates = covariates.generate_future_covariates(self.series)
+                            self.past_covariates = generate_past_covariates(self.series)
+                            self.future_covariates = generate_future_covariates(self.series)
                     
                     # If not present in config, use the default value
                     if param_name == "kwargs":
@@ -111,8 +110,10 @@ class Tuner:
         
         # Create Optuna study and optimize
         try:
-            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            #study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
+            return study
         except Exception as err:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
 
@@ -120,17 +121,16 @@ class Tuner:
         for model in self.models:
             print(f"\Tuning {model}\n")
             try:
-                self.__tune_model(model())
+                study = self.__tune_model(model())
                 print(f"\nDone with: {model}\n")
+                return study
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
     def tune_model_x(self, modelName):
-        #if model is None:
-        #    raise Exception(f"Model {modelName} not found")
-        #print(f"Tuning {model.__name__}\n")
         try:
-            self.__tune_model(modelName)
+            study = self.__tune_model(modelName)
             print(f"\nDone with: {modelName}\n")
-            return "Model Tuned"
+            return study
+            return 
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")
