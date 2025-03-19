@@ -8,6 +8,5 @@ def insert_model():
     # print(f"Inserted: {res}")
     pass
 
-
 if __name__ == '__main__':
     start_api()
