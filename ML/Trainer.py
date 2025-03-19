@@ -1,5 +1,5 @@
 from ML.model import Model
-from .Darts.Training.ensemble_training import EnsembleTrainer
+from Darts.Training.ensemble_training import EnsembleTrainer
 class Trainer:
     trained_models = {}
     def __init__(self, models, serviceId, series, forecast_period, split_train_val):

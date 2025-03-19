@@ -1,11 +1,12 @@
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
-from .hyperparameters import HyperParameterConfig  # Import config from the external file
+from hyperparameters import HyperParameterConfig  # Import config from the external file
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import optuna
 from darts.metrics import rmse
@@ -13,7 +14,9 @@ import logging
 import sys
 import inspect
 from darts.datasets import AirPassengersDataset
-from .handle_covariates import *
+import ML.Darts.Utils.preprocessing as preprocessing
+import handle_covariates as covariates
+import os
 from darts import TimeSeries
 
 class Tuner:
@@ -23,16 +26,15 @@ class Tuner:
         self.num_workers = 8 if torch.cuda.is_available() else 0
         torch.set_float32_matmul_precision("medium")
         self.gpu = gpu
+        self.trials = trials
         
         # Optuna vars
-        #self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://postgres:password@localhost:5431/optuna_db")
-        self.trials = trials
+        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
         
         #Load dataset
         #self.series = Utils.load_data(data_path, "min")
         self.series = data
-        self.series = AirPassengersDataset().load()
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
         self.models = [
@@ -66,8 +68,8 @@ class Tuner:
                         # TODO: Implement handling of kwargs
 
                         if self.past_covariates is None and self.future_covariates is None:
-                            self.past_covariates = generate_past_covariates(self.series)
-                            self.future_covariates = generate_future_covariates(self.series)
+                            self.past_covariates = covariates.generate_past_covariates(self.series)
+                            self.future_covariates = covariates.generate_future_covariates(self.series)
                     
                     # If not present in config, use the default value
                     if param_name == "kwargs":
@@ -131,6 +133,5 @@ class Tuner:
             study = self.__tune_model(modelName)
             print(f"\nDone with: {modelName}\n")
             return study
-            return 
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")
