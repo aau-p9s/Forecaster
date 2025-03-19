@@ -1,6 +1,5 @@
 from darts.timeseries import TimeSeries
 from darts.utils.timeseries_generation import datetime_attribute_timeseries
-from workalendar.europe import Denmark
 from darts.utils.timeseries_generation import holidays_timeseries
 
 def generate_static_covariates(series: TimeSeries):

@@ -1,7 +1,7 @@
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
-from hyperparameters import HyperParameterConfig  # Import config from the external file
+from .hyperparameters import HyperParameterConfig  # Import config from the external file
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -15,7 +15,7 @@ import sys
 import inspect
 from darts.datasets import AirPassengersDataset
 import ML.Darts.Utils.preprocessing as preprocessing
-import handle_covariates as covariates
+from . import handle_covariates as covariates
 import os
 from darts import TimeSeries
 

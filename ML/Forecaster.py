@@ -39,7 +39,8 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             self.forecasts.append(Forecast(model.id, forecast, forecast_error))
 
         forecast = self.find_best_forecast()    
-        self.repository.insert_forecast(forecast.modelId, forecast, forecast.error)
+        print(f"{forecast.modelId=}")
+        self.repository.insert_forecast(forecast.modelId, forecast.forecast, forecast.error)
 
     def find_best_forecast(self): # forecast ranker
         """Finds the forecast with the lowest error and assumes that it is the best"""

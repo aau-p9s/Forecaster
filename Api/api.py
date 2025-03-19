@@ -1,5 +1,5 @@
 from flask import Flask, Response, request
-from flask_restx import Api, Resource
+from flask_restx import Api, Resource, fields
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.ServiceRepository import ServiceRepository
@@ -10,7 +10,7 @@ from ML.Forecaster import Forecast
 from ML.Forecaster import Forecaster
 from ML.Trainer import Trainer
 from Utils.getEnv import getEnv
-from ML.Darts.Tuning.tuner import Tuner
+from ML.Darts.Tuning.Tuner import Tuner
 
 app = Flask(__name__)
 api = Api(app, 
@@ -33,6 +33,12 @@ trainer_threads = []
 forecaster_threads = []
 forecasters:dict[str, dict] = {}
 trainers:dict[str, dict] = {}
+
+
+tuning_model = api.model("Tuning POST Model", {
+    "tuning_data":fields.List(fields.Integer),
+    "horizon":fields.Date
+})
 
 
 @api.route("/train/<serviceId>")
@@ -85,27 +91,49 @@ class Predict(Resource):
             t.join()
         else:
             thread.join()
-        return Response(status=200, response=dumps({"message": "Forecast in progress"}))
 
-@api.route("/tune/<modelName>")
-class Predict(Resource):
-    @api.doc(params={"modelName":"darts-model-name", "tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+        data = forecast_repository.get_forecasts_by_service(serviceId)
+        print(data)
+        newest = Forecast(data[0], data[1])
+
+        return Response(status=200, response=dumps({"message": f"Forecast finished for {serviceId}", "forecast":newest}))
+
+
+
+@api.route("/tuner/<modelName>")
+class Tune(Resource):
+    @api.doc(params={"modelName":"darts-model-name"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    @api.expect(tuning_model)
     def get(self, modelName):
-        tuningData = request.args.get("tuningData")
-        forecast_horizon = request.args.get("horizon")
+        data = request.get_json()
+        tuningData = data["tuningData"]
+        forecast_horizon = data["horizon"]
+
         t = Tuner(tuningData, forecast_horizon)
         complete_study = t.tune_model_x(modelName)
         return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
 
-@api.route("/tune/allModels")
-class Predict(Resource):
-    @api.doc(params={"tuningData":"data-to-tune-model-with", "horizon":"how-far-to-predict"}, responses={200:"ok", 202:"working...", 500: "something died..."})
-    def get(self, tuningData, forecast_horizon):
-        tuningData = request.args.get("tuningData")
-        forecast_horizon = request.args.get("horizon")
+@api.route("/tuner")
+class TuneAll(Resource):
+    @api.doc(responses={200:"ok", 202:"working...", 500: "something died..."})
+    # TODO: update this data to be correct
+    @api.expect(tuning_model)
+    def post(self):
+        data = request.get_json()
+        tuningData = data["tuningData"]
+        forecast_horizon = data["horizon"]
+
         t = Tuner(tuningData, forecast_horizon)
         complete_study = t.tune_all_models()
         return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
+    
+@api.route("/models")
+class Models(Resource):
+    @api.doc(responses={200:"ok"})
+    def get(self):
+        modelNames = model_repository.get_all_models()
+        return Response(status=200, response=dumps({"message": "All models", "models":modelNames}))
+
 
 
 def start_api():

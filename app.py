@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from Api.api import *
 
 def insert_model():
