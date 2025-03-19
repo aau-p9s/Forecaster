@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  optuna-db:
+    image: postgres:15
+    container_name: optuna-db
+    restart: always
+    environment:
+      POSTGRES_USER: optuna
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: optuna
+    ports:
+      - "5432:5432"
+    networks:
+      - optuna-net
+
+  rest-api:
+    image: ghcr.io/aau-p9s/forecaster:latest
+    container_name: ml-rest-api
+    environment:
+      OPTUNA_STORAGE_URL: postgresql://optuna:password@optuna-db:5432/optuna
+    depends_on:
+      - optuna-db
+    networks:
+      - optuna-net
+
+networks:
+  optuna-net:

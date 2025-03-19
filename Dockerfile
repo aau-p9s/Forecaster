@@ -6,4 +6,6 @@ COPY . /src
 
 RUN pip install -r requirements.txt
 
-ENTRYPOINT ["python", "app.py"]
+RUN chmod +x /src/app.py
+
+ENTRYPOINT ["/src/app.py"]

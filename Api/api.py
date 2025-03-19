@@ -5,9 +5,9 @@ from Database.ModelRepository import ModelRepository
 from Database.ServiceRepository import ServiceRepository
 from Database.dbhandler import DbConnection
 from json import dumps
-from ML.Forecaster import Forecaster
-from ML.Trainer import Trainer
-from Utils.ReturnableThread import ReturnableThread
+from ML.forecaster import Forecaster
+from ML.trainer import Trainer
+from Utils.returnable_thread import ReturnableThread
 from Utils.getEnv import getEnv
 
 app = Flask(__name__)
@@ -129,7 +129,6 @@ def get_finished_threads(type, serviceId):
 
 
 def start_api():
-
     app.run(api_addr, api_port, debug=True)
 
 if __name__ == "__main__":
