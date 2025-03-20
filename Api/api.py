@@ -36,8 +36,11 @@ trainers:dict[str, dict] = {}
 
 
 tuning_model = api.model("Tuning POST Model", {
-    "tuning_data":fields.List(fields.Integer),
-    "horizon":fields.Date
+    "tuning_data": {
+        "timestamp":fields.DateTime,
+        "value": fields.Float
+    },
+    "horizon":fields.Integer
 })
 
 
@@ -69,7 +72,7 @@ class Train(Resource):
 
 @api.route("/predict/<serviceId>")
 class Predict(Resource):
-    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500: "something died..."})
+    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 500: "something died..."})
     def get(self, serviceId):
         # Create new forecast on a new thread and copy to DB
         models = model_repository.get_all_models_by_service(serviceId)
@@ -94,9 +97,10 @@ class Predict(Resource):
 
         data = forecast_repository.get_forecasts_by_service(serviceId)
         print(data)
-        newest = Forecast(data[0], data[1])
+        # TODO: implement logic
+        # newest = Forecast(data[0], data[1])
 
-        return Response(status=200, response=dumps({"message": f"Forecast finished for {serviceId}", "forecast":newest}))
+        return Response(status=200, response=dumps({"message": f"Forecast finished for {serviceId}"}))#, "forecast":newest.forecast}))
 
 
 
