@@ -6,6 +6,24 @@ from darts.metrics import rmse
 from darts.timeseries import TimeSeries
 import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
+from darts.datasets import AirPassengersDataset
+from darts.models import StatsForecastAutoTheta
+from ML.Forecaster import Forecaster, Forecast
+import pytest
+from unittest.mock import MagicMock
+from Database.ForecastRepository import ForecastRepository
+from ML.model import Model
+
+@pytest.fixture
+def mock_db():
+    """Creates a mock database connection."""
+    return MagicMock()
+
+@pytest.fixture
+def forecast_repository(mock_db):
+    """Creates a ForecastRepository instance with a mocked DB connection."""
+    return ForecastRepository(mock_db)
+
 
 @pytest.fixture
 def sample_time_series():
@@ -64,3 +82,22 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert isinstance(model, NaiveEnsembleModel)
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
+
+def test_forecaster(forecast_repository):
+    data = AirPassengersDataset().load()
+    with open("Assets\\autotheta_model.pth", mode='rb') as file:
+        modelBin = file.read()
+    model = Model("testId", "AutoTheta", modelBin, "testServiceId")
+    models = [model]
+    forecaster = Forecaster(models, "testServiceId", forecast_repository)
+    
+    forecast = forecaster.create_forecasts(12, data)
+    
+    assert forecast is not None
+    assert isinstance(forecast.forecast, TimeSeries)
+    assert forecast.forecast.n_timesteps == 12
+    assert isinstance(forecast, Forecast)
+
+    # dump = forecast.forecast.to_json()
+    # with open("Tests\\forecast.json", "w") as file:
+    #     file.write(dump)

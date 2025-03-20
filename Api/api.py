@@ -100,30 +100,30 @@ class Predict(Resource):
 
 
 
-@api.route("/tuner/<modelName>")
+@api.route("/tuner/<serviceId>/<modelName>")
 class Tune(Resource):
     @api.doc(params={"modelName":"darts-model-name"}, responses={200:"ok", 202:"working...", 500: "something died..."})
     @api.expect(tuning_model)
-    def get(self, modelName):
+    def get(self, serviceId, modelName):
         data = request.get_json()
         tuningData = data["tuningData"]
         forecast_horizon = data["horizon"]
 
-        t = Tuner(tuningData, forecast_horizon)
+        t = Tuner(serviceId, tuningData, forecast_horizon)
         complete_study = t.tune_model_x(modelName)
         return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
 
-@api.route("/tuner")
+@api.route("/tuner/<serviceId>")
 class TuneAll(Resource):
     @api.doc(responses={200:"ok", 202:"working...", 500: "something died..."})
     # TODO: update this data to be correct
     @api.expect(tuning_model)
-    def post(self):
+    def post(self, serviceId):
         data = request.get_json()
         tuningData = data["tuningData"]
         forecast_horizon = data["horizon"]
 
-        t = Tuner(tuningData, forecast_horizon)
+        t = Tuner(serviceId, tuningData, forecast_horizon)
         complete_study = t.tune_all_models()
         return Response(status=200, response=dumps({"message": "Model tuned. Study returned.", "study": complete_study}))
     
