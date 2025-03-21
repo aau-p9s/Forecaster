@@ -8,11 +8,11 @@ import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
 from darts.datasets import AirPassengersDataset
 from darts.models import StatsForecastAutoTheta
-from ML.Forecaster import Forecaster, Forecast
+from ML.forecaster import Forecaster, Forecast
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
+from ML.model import Model
 
 @pytest.fixture
 def mock_db():

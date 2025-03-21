@@ -1,5 +1,5 @@
 from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
+from ML.model import Model
 from darts import TimeSeries
 from darts.metrics import rmse
 from darts.models.forecasting.forecasting_model import ForecastingModel
