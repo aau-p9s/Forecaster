@@ -21,12 +21,13 @@ from darts import TimeSeries
 
 class Tuner:
     
-    def __init__(self, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0, trials = 75):
+    def __init__(self, serviceId, data: TimeSeries, forecast_period, train_val_split = 0.75, gpu = 0, trials = 75):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.num_workers = 8 if torch.cuda.is_available() else 0
         torch.set_float32_matmul_precision("medium")
         self.gpu = gpu
         self.trials = trials
+        self.serviceId = serviceId
         
         # Optuna vars
         self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
@@ -113,7 +114,7 @@ class Tuner:
         # Create Optuna study and optimize
         try:
             #study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
-            study = optuna.create_study(direction="minimize", study_name=model_name + "_study", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study = optuna.create_study(direction="minimize", study_name=f"{self.serviceId}_{model_name}", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
             return study
         except Exception as err:
@@ -121,17 +122,18 @@ class Tuner:
 
     def tune_all_models(self):
         for model in self.models:
-            print(f"\Tuning {model}\n")
+            print(f"\Tuning {model} for servicde {self.serviceId}\n")
             try:
                 study = self.__tune_model(model())
-                print(f"\nDone with: {model}\n")
+                print(f"\nDone with {model} for servicde {self.serviceId}\n")
                 return study
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
     def tune_model_x(self, modelName):
         try:
+            print(f"\Tuning {modelName} for servicde {self.serviceId}\n")
             study = self.__tune_model(modelName)
-            print(f"\nDone with: {modelName}\n")
+            print(f"\nDone with: {modelName} for servicde {self.serviceId}\n")
             return study
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")
