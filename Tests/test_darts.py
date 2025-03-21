@@ -85,7 +85,7 @@ def test_naive_ensemble_model(ensemble_training_local):
 
 def test_forecaster(forecast_repository):
     data = AirPassengersDataset().load()
-    with open("Assets\\autotheta_model.pth", mode='rb') as file:
+    with open("Assets/autotheta_model.pth", mode='rb') as file:
         modelBin = file.read()
     model = Model("testId", "AutoTheta", modelBin, "testServiceId")
     models = [model]
