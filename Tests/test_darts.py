@@ -12,7 +12,7 @@ from ML.Forecaster import Forecaster, Forecast
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
-from .ML.model import Model
+from ML.Model import Model
 
 @pytest.fixture
 def mock_db():
