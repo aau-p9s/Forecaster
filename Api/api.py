@@ -8,7 +8,7 @@ from json import dumps
 from multiprocessing import Process
 from ML.Forecaster import Forecast
 from ML.Forecaster import Forecaster
-from ML.Frainer import Trainer
+from ML.Trainer import Trainer
 from Utils.getEnv import getEnv
 from ML.Darts.Tuning.Tuner import Tuner
 
