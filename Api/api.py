@@ -6,9 +6,9 @@ from Database.ServiceRepository import ServiceRepository
 from Database.dbhandler import DbConnection
 from json import dumps
 from multiprocessing import Process
-from ML.forecaster import Forecast
-from ML.forecaster import Forecaster
-from ML.trainer import Trainer
+from ML.Forecaster import Forecast
+from ML.Forecaster import Forecaster
+from ML.Frainer import Trainer
 from Utils.getEnv import getEnv
 from ML.Darts.Tuning.Tuner import Tuner
 
