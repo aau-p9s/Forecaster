@@ -5,6 +5,7 @@ from flask_restx import Api
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.ServiceRepository import ServiceRepository
+from Database.SettingsRepository import SettingsRepository
 from Database.dbhandler import DbConnection
 from Utils.getEnv import getEnv
 
@@ -26,6 +27,7 @@ db = DbConnection(database, user, password, addr, port)
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
 service_repository = ServiceRepository(db)
+settings_repository = SettingsRepository(db)
 trainer_threads = []
 forecaster_threads = []
 forecasters:dict[str, dict] = {}

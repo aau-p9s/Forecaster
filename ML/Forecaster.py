@@ -1,3 +1,7 @@
+import csv
+import pickle
+
+from darts import TimeSeries
 from Database.ForecastRepository import ForecastRepository
 from darts.metrics import rmse
 from Database.Models.Forecast import Forecast
@@ -20,7 +24,10 @@ class Forecaster: # Each service has one of these to create / keep track of fore
         """
         for model in self.models:
             # Use predict from Darts and backtest to calculate errors for models on historical data here
-            forecast = model.binary.predict(forecastHorizon)
+            modelObj = pickle.loads(model.binary)
+            forecast = modelObj.predict(forecastHorizon)
+            if historicalData is None:
+                historicalData = TimeSeries.from_csv("./test_data.csv")
             forecast_error = rmse(historicalData, forecast)
             self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
 
