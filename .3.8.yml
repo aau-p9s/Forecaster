@@ -10,7 +10,7 @@ services:
       - "5432:5432"
 
   forecaster:
-    image: ghcr.io/aau-p9s/forecaster:test
+    image: ghcr.io/aau-p9s/forecaster:latest
     restart: always
     environment:
       FORECASTER__PGSQL__DATABASE: autoscaler

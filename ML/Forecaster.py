@@ -1,14 +1,7 @@
 from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
-from darts import TimeSeries
 from darts.metrics import rmse
-from darts.models.forecasting.forecasting_model import ForecastingModel
-
-class Forecast:
-    def __init__(self, modelId, forecast: TimeSeries, error=float('inf')):
-        self.modelId = modelId
-        self.forecast = forecast
-        self.error = error
+from Database.Models.Forecast import Forecast
+from Database.Models.Model import Model
 
 class Forecaster: # Each service has one of these to create / keep track of forecasts
     forecasts = []

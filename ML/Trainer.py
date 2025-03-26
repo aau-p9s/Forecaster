@@ -1,7 +1,7 @@
 
 from Database.ModelRepository import ModelRepository
 from .Darts.Training.ensemble_training import EnsembleTrainer
-from ML.Model import Model
+from Database.Models.Model import Model
 
 class Trainer:
     trained_models = []
