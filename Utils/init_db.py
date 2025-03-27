@@ -14,7 +14,7 @@ repo = ModelRepository(db)
 
 model = RandomForest(output_chunk_length=20, lags=[-5], lags_past_covariates=None)
 
-ts = TimeSeries.from_csv("./test_data.csv")
+ts = TimeSeries.from_csv("./Assets/test_data.csv")
 
 model.fit(ts)
 

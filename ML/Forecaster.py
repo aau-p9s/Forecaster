@@ -28,7 +28,7 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             forecast = model.model.predict(forecastHorizon)
             # TODO: use real data
             if historicalData is None:
-                historicalData = TimeSeries.from_csv("./test_data.csv")
+                historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
             forecast_error = rmse(historicalData, forecast)
             self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
 
