@@ -11,7 +11,7 @@ from Database.Models.Model import Model
 def mock_db():
     """Fixture to create a mock database connection"""
     mock_db = MagicMock()
-    mock_db.execute_query = MagicMock()
+    mock_db.execute_get = MagicMock()
     return mock_db
 
 def test_get_all_models_by_service(mock_db):
