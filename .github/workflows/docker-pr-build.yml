@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4.1.1
 
       - name: Build Docker latest image
-        uses: docker/build-action@v3
+        uses: docker/build-push-action@v3
         with:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           platforms: linux/amd64
