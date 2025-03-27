@@ -33,8 +33,6 @@ class Predict(Resource):
         else:
             thread.join()
 
-        data = forecast_repository.get_forecasts_by_service(serviceId)
-        print(data)
         # TODO: implement logic
         # newest = Forecast(data[0], data[1])
 

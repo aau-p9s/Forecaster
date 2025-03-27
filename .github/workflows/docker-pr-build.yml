@@ -1,0 +1,23 @@
+name: Create docker image without publish
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: aau-p9s/forecaster
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4.1.1
+
+      - name: Build Docker latest image
+        uses: docker/build-action@v3
+        with:
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          platforms: linux/amd64
+
