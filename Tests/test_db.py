@@ -1,5 +1,6 @@
 from pickle import loads
 from darts.datasets import AirPassengersDataset
+from darts.timeseries import TimeSeries
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
@@ -46,7 +47,7 @@ def test_insert_model(mock_db):
 
 def test_get_latest_forecast(mock_db):
     """Test getting the latest forecast"""
-    data = AirPassengersDataset().load()
+    data = TimeSeries.from_csv("./test_data.csv")
 
     mock_db.execute_query.return_value = Forecast("testforecast", data)
 
