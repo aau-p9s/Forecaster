@@ -1,7 +1,7 @@
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
-from .hyperparameters import HyperParameterConfig  # Import config from the external file
+from .hyperparameters import HyperParameterConfig
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -11,13 +11,14 @@ import matplotlib.pyplot as plt
 import optuna
 from darts.metrics import rmse
 import logging
+import os
 import sys
 import inspect
 from darts.datasets import AirPassengersDataset
 import ML.Darts.Utils.preprocessing as preprocessing
-from . import handle_covariates as covariates
-import os
+from .handle_covariates import *
 from darts import TimeSeries
+from ..Utils.preprocessing import *
 
 class Tuner:
     
@@ -30,11 +31,11 @@ class Tuner:
         self.serviceId = serviceId
         
         # Optuna vars
-        self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
+        #self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
         optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
         
         #Load dataset
-        #self.series = Utils.load_data(data_path, "min")
+        #self.series = load_data(data, "min")
         self.series = data
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
@@ -69,8 +70,8 @@ class Tuner:
                         # TODO: Implement handling of kwargs
 
                         if self.past_covariates is None and self.future_covariates is None:
-                            self.past_covariates = covariates.generate_past_covariates(self.series)
-                            self.future_covariates = covariates.generate_future_covariates(self.series)
+                            self.past_covariates = generate_past_covariates(self.series)
+                            self.future_covariates = generate_future_covariates(self.series)
                     
                     # If not present in config, use the default value
                     if param_name == "kwargs":
@@ -114,7 +115,7 @@ class Tuner:
         # Create Optuna study and optimize
         try:
             #study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
-            study = optuna.create_study(direction="minimize", study_name=f"{self.serviceId}_{model_name}", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+            study = optuna.create_study(direction="minimize", storage="sqlite:///model-tuning", study_name=f"{self.serviceId}_{model_name}", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
             return study
         except Exception as err:
@@ -122,18 +123,18 @@ class Tuner:
 
     def tune_all_models(self):
         for model in self.models:
-            print(f"\Tuning {model} for servicde {self.serviceId}\n")
+            print(f"\Tuning {model} for service {self.serviceId}\n")
             try:
                 study = self.__tune_model(model())
-                print(f"\nDone with {model} for servicde {self.serviceId}\n")
+                print(f"\nDone with {model} for service {self.serviceId}\n")
                 return study
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
     def tune_model_x(self, modelName):
         try:
-            print(f"\Tuning {modelName} for servicde {self.serviceId}\n")
+            print(f"\Tuning {modelName} for service {self.serviceId}\n")
             study = self.__tune_model(modelName)
-            print(f"\nDone with: {modelName} for servicde {self.serviceId}\n")
+            print(f"\nDone with: {modelName} for service {self.serviceId}\n")
             return study
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")

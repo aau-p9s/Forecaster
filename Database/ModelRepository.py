@@ -1,6 +1,7 @@
 from Database.dbhandler import DbConnection
 import psycopg2
 from Database.Utils import gen_uuid
+from ML.Model import Model
 
 class ModelRepository:
     def __init__(self, db: DbConnection):
@@ -15,9 +16,7 @@ class ModelRepository:
     def get_all_models(self):
         return [row[0] for row in self.db.execute_query('SELECT id from models')]
 
-    def insert_model(self, modelname, modelpath, trainedTime, serviceId):
-        with open(modelpath, "rb") as file:
-            binary_data = file.read()
+    def insert_model(self, model : Model):
         query = 'INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid") VALUES (%s, %s, %s, %s, %s) RETURNING *; '
-        params = (gen_uuid(), modelname, psycopg2.Binary(binary_data), trainedTime, serviceId)
+        params = (gen_uuid(), model.name, psycopg2.Binary(model.binary), model.trainedTime, model.serviceId)
         return self.db.execute_query(query, params)
