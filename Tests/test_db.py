@@ -16,7 +16,7 @@ def mock_db():
 
 def test_get_all_models_by_service(mock_db):
     """Test fetching models for a service with a mocked database"""
-    with open("Assets/autotheta_model.pth", "rb") as file:
+    with open("Assets/test_model.pth", "rb") as file:
         modelObj = loads(file.read())
     model = Model("model", modelObj, "service")
     mock_db.execute_query.return_value = [
@@ -38,7 +38,7 @@ def test_insert_model(mock_db):
     ]
 
     model_repo = ModelRepository(mock_db)
-    with open("Assets/autotheta_model.pth", "rb") as file:
+    with open("Assets/test_model.pth", "rb") as file:
         model = loads(file.read())
     result = model_repo.insert_model(Model("NewModel", model, "myservice"))
 
