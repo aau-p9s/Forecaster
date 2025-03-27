@@ -11,6 +11,7 @@
                     flask-restx
                     psycopg2
                     pytest
+                    ipython
                 ]))
                 postgresql
             ];

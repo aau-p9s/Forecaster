@@ -1,4 +1,5 @@
 from pickle import loads
+from darts.datasets import AirPassengersDataset
 from darts.timeseries import TimeSeries
 import pytest
 from unittest.mock import MagicMock
@@ -19,46 +20,48 @@ def test_get_all_models_by_service(mock_db):
     with open("Assets/test_model.pth", "rb") as file:
         modelObj = loads(file.read())
     model = Model("model", modelObj, "service")
-    mock_db.execute_query.return_value = [
+    mock_db.execute_get.return_value = [
         ("model-id", type(modelObj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
     result = model_repo.get_all_models_by_service("service")
 
-    mock_db.execute_query.assert_called_once_with(
+    mock_db.execute_get.assert_called_once_with(
         'SELECT id, name, bin from models WHERE "serviceid" = %s;', [model.serviceId]
     )
-    assert result[0] == model # Ensure the model is equal in the database
+    assert result[0].get_binary() == model.get_binary() # Ensure the model is equal in the database
 
 def test_insert_model(mock_db):
     """Test inserting a model with a mocked database"""
-    mock_db.execute_query.return_value = [
-        ("name")
+    with open("Assets/test_model.pth", "rb") as file:
+        modelObj = loads(file.read())
+    model = Model("model-id", modelObj, "service")
+
+    mock_db.execute_get.return_value = [
+        (model.modelId, type(modelObj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
-    with open("Assets/test_model.pth", "rb") as file:
-        model = loads(file.read())
-    result = model_repo.insert_model(Model("NewModel", model, "myservice"))
+    result = model_repo.insert_model(model)
 
-    assert result == model # Check inserted model name
+    assert result.get_binary() == model.get_binary() # Check inserted model
 
 def test_get_latest_forecast(mock_db):
     """Test getting the latest forecast"""
-    data = TimeSeries.from_csv("./Assets/test_data.csv")
-    forecast = Forecast("forecast-id", data)
+    data = AirPassengersDataset().load()
+    forecast = Forecast("model-id", data)
 
-    mock_db.execute_query.return_value = [
-            ("model-id", forecast.serialize())
+    mock_db.execute_get.return_value = [
+        (forecast.modelId, forecast.serialize())
     ]
 
     forecast_repo = ForecastRepository(mock_db)
-    result = forecast_repo.get_latest_forecast("testforecast", "service")
+    result = forecast_repo.get_latest_forecast(forecast.modelId, "service")
 
-    mock_db.execute_query.assert_called_once_with(
+    mock_db.execute_get.assert_called_once_with(
         'SELECT modelid, forecast FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
-        [ "model-id", "service" ]
+        [ forecast.modelId, "service" ]
 
     )
-    assert result == Forecast("testforecast", data)  # Ensure forecast ID matches
+    assert result.serialize() == forecast.serialize()  # Ensure forecasts matches
