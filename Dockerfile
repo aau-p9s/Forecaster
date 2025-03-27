@@ -11,7 +11,6 @@ COPY Database ./Database
 COPY ML ./ML
 COPY Utils ./Utils
 COPY app.py .
-COPY test_data.csv .
 
 
 RUN chmod +x /src/app.py
