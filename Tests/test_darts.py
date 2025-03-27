@@ -1,12 +1,10 @@
 import pytest
 import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
-from darts.metrics import rmse
 from darts.timeseries import TimeSeries
 import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
 from darts.datasets import AirPassengersDataset
-from darts.models import StatsForecastAutoTheta
 from ML.Forecaster import Forecaster, Forecast
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository

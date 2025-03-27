@@ -1,4 +1,3 @@
-from json import dumps, loads
 from time import time
 from darts import TimeSeries
 from psycopg2 import DatabaseError

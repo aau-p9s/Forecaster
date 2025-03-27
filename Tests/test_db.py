@@ -1,6 +1,5 @@
 from pickle import loads
 from darts.datasets import AirPassengersDataset
-from darts.timeseries import TimeSeries
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository

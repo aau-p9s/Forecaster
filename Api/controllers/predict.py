@@ -4,7 +4,7 @@ from flask import Response
 from flask_restx import Resource
 
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecasters, forecast_repository, settings_repository
+from ..lib.variables import api, model_repository, forecasters, forecast_repository
 
 @api.route("/predict/<string:serviceId>")
 class Predict(Resource):
