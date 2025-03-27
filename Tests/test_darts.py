@@ -11,6 +11,7 @@ from ML.Forecaster import Forecaster, Forecast
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
 from Database.Models.Model import Model
+import pickle
 
 @pytest.fixture
 def mock_db():
@@ -83,9 +84,9 @@ def test_naive_ensemble_model(ensemble_training_local):
 
 def test_forecaster(forecast_repository):
     data = AirPassengersDataset().load()
-    with open("Assets/autotheta_model.pth", mode='rb') as file:
-        modelBin = file.read()
-    model = Model("testId", "AutoTheta", modelBin, "testServiceId")
+    with open("./Assets/autotheta_model.pth", "rb") as file:
+        modelObj = pickle.loads(file.read())
+    model = Model("testId", modelObj, "testServiceId")
     models = [model]
     forecaster = Forecaster(models, "testServiceId", forecast_repository)
     

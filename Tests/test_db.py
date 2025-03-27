@@ -1,7 +1,11 @@
+from pickle import loads
+from darts.datasets import AirPassengersDataset
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
+from Database.Models.Forecast import Forecast
+from Database.Models.Model import Model
 from Database.SettingsRepository import SettingsRepository
 from Database.ServiceRepository import ServiceRepository
 
@@ -25,7 +29,7 @@ def test_get_all_models_by_service(mock_db):
         'SELECT * from models WHERE "serviceid" = %s;', ("service_1",)
     )
     assert len(result) == 1
-    assert result[0][1] == "MyModel"  # Ensure the model name is correct
+    assert type(result[0].model).__name__ == "MyModel"  # Ensure the model name is correct
 
 def test_insert_model(mock_db):
     """Test inserting a model with a mocked database"""
@@ -34,21 +38,23 @@ def test_insert_model(mock_db):
     ]
 
     model_repo = ModelRepository(mock_db)
-    result = model_repo.insert_model("NewModel", "Tests/test_db.py", "2024-02-05 12:30:00", "service_2")
+    with open("Assets/autotheta_model.pth", "rb") as file:
+        model = loads(file.read())
+    result = model_repo.insert_model(Model("NewModel", model, "myservice"))
 
-    assert result[0][1] == "NewModel"  # Check inserted model name
+    assert result.modelId == "NewModel"  # Check inserted model name
 
 def test_get_latest_forecast(mock_db):
     """Test getting the latest forecast"""
-    mock_db.execute_query.return_value = [
-        ("5678", "1234", 0.95, "service_1")
-    ]
+    data = AirPassengersDataset().load()
+
+    mock_db.execute_query.return_value = Forecast("testforecast", data)
 
     forecast_repo = ForecastRepository(mock_db)
-    result = forecast_repo.get_latest_forecast("1234", "service_1")
+    result = forecast_repo.get_latest_forecast("testforecast", "service_1")
 
     mock_db.execute_query.assert_called_once_with(
         'SELECT * FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
-        ("1234", "service_1")
+        ("testforecast", "service_1")
     )
-    assert result[0] == ("5678", "1234", 0.95, "service_1")  # Ensure forecast ID matches
+    assert result == Forecast("testforecast", data)  # Ensure forecast ID matches
