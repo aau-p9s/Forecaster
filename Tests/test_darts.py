@@ -1,4 +1,3 @@
-import re
 import pytest
 import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
@@ -9,10 +8,9 @@ from ML.Darts.Training.ensemble_training import EnsembleTrainer
 from darts.datasets import AirPassengersDataset
 from darts.models import StatsForecastAutoTheta
 from ML.Forecaster import Forecaster, Forecast
-import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
+from Database.Models.Model import Model
 
 @pytest.fixture
 def mock_db():
