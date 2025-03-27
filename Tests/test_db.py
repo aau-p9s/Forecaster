@@ -1,5 +1,4 @@
 from pickle import loads
-from darts.datasets import AirPassengersDataset
 from darts.timeseries import TimeSeries
 import pytest
 from unittest.mock import MagicMock
@@ -7,8 +6,6 @@ from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.Models.Forecast import Forecast
 from Database.Models.Model import Model
-from Database.SettingsRepository import SettingsRepository
-from Database.ServiceRepository import ServiceRepository
 
 @pytest.fixture
 def mock_db():
@@ -19,23 +16,25 @@ def mock_db():
 
 def test_get_all_models_by_service(mock_db):
     """Test fetching models for a service with a mocked database"""
+    with open("Assets/autotheta_model.pth", "rb") as file:
+        modelObj = loads(file.read())
+    model = Model("model", modelObj, "service")
     mock_db.execute_query.return_value = [
-        ("1234", "MyModel", b"binary_data", "2024-02-05 12:00:00", "service_1")
+        ("model-id", type(modelObj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
-    result = model_repo.get_all_models_by_service("service_1")
+    result = model_repo.get_all_models_by_service("service")
 
     mock_db.execute_query.assert_called_once_with(
-        'SELECT * from models WHERE "serviceid" = %s;', ("service_1",)
+        'SELECT id, name, bin from models WHERE "serviceid" = %s;', [model.serviceId]
     )
-    assert len(result) == 1
-    assert type(result[0].model).__name__ == "MyModel"  # Ensure the model name is correct
+    assert result[0] == model # Ensure the model is equal in the database
 
 def test_insert_model(mock_db):
     """Test inserting a model with a mocked database"""
     mock_db.execute_query.return_value = [
-        ("1234", "NewModel", b"binary_data", "2024-02-05 12:30:00", "service_2")
+        ("name")
     ]
 
     model_repo = ModelRepository(mock_db)
@@ -43,19 +42,23 @@ def test_insert_model(mock_db):
         model = loads(file.read())
     result = model_repo.insert_model(Model("NewModel", model, "myservice"))
 
-    assert result.modelId == "NewModel"  # Check inserted model name
+    assert result == model # Check inserted model name
 
 def test_get_latest_forecast(mock_db):
     """Test getting the latest forecast"""
-    data = TimeSeries.from_csv("./test_data.csv")
+    data = TimeSeries.from_csv("./Assets/test_data.csv")
+    forecast = Forecast("forecast-id", data)
 
-    mock_db.execute_query.return_value = Forecast("testforecast", data)
+    mock_db.execute_query.return_value = [
+            ("model-id", forecast.serialize())
+    ]
 
     forecast_repo = ForecastRepository(mock_db)
-    result = forecast_repo.get_latest_forecast("testforecast", "service_1")
+    result = forecast_repo.get_latest_forecast("testforecast", "service")
 
     mock_db.execute_query.assert_called_once_with(
-        'SELECT * FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
-        ("testforecast", "service_1")
+        'SELECT modelid, forecast FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
+        [ "model-id", "service" ]
+
     )
     assert result == Forecast("testforecast", data)  # Ensure forecast ID matches

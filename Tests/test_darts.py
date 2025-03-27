@@ -83,12 +83,12 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
 def test_forecaster(forecast_repository):
-    data = TimeSeries.from_csv("./test_data.csv")
-    with open("./Assets/autotheta_model.pth", "rb") as file:
+    data = TimeSeries.from_csv("./Assets/test_data.csv")
+    with open("./Assets/test_model.pth", "rb") as file:
         modelObj = pickle.loads(file.read())
-    model = Model("testId", modelObj, "testServiceId")
+    model = Model("model-id", modelObj, "service")
     models = [model]
-    forecaster = Forecaster(models, "testServiceId", forecast_repository)
+    forecaster = Forecaster(models, model.serviceId, forecast_repository)
     
     forecast = forecaster.create_forecasts(12, data)
     

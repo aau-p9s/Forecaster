@@ -15,9 +15,8 @@ class ForecastRepository:
     def insert_forecast(self, forecast:Forecast, service_id) -> None:
         """Inserts a forecast linked to a model and a service."""
         query = 'INSERT INTO forecasts ("id", "modelid", "forecast", "serviceid", "createdat") VALUES (%s, %s, %s, %s, %s) RETURNING *;'
-        data = loads(forecast.forecast.to_json())["data"]
-        final = [{"timestamp":ts, "cpu_percentage":ps} for ts,ps in data]
-        params = [gen_uuid(), forecast.modelId, dumps(final), service_id, psycopg2.TimestampFromTicks(time())]
+        serialForecast = forecast.serialize()
+        params = [gen_uuid(), forecast.modelId, serialForecast, service_id, psycopg2.TimestampFromTicks(time())]
         self.db.execute(query, params)
 
     def get_forecasts_by_model_and_service(self, model_id, serviceId) -> list[Forecast]:
