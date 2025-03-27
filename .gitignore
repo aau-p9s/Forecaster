@@ -18,7 +18,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -180,3 +179,5 @@ pyrightconfig.json
 # nix
 .direnv
 .envrc
+
+postgres_data

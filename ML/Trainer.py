@@ -1,7 +1,7 @@
 
 from Database.ModelRepository import ModelRepository
 from .Darts.Training.ensemble_training import EnsembleTrainer
-from ML.Model import Model
+from Database.Models.Model import Model
 from darts.models.forecasting.forecasting_model import ForecastingModel
 import pickle
 import uuid
