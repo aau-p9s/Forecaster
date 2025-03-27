@@ -19,6 +19,7 @@ import ML.Darts.Utils.preprocessing as preprocessing
 from .handle_covariates import *
 from darts import TimeSeries
 from ..Utils.preprocessing import *
+from Database.Models.Model import Model
 
 class Tuner:
     
@@ -46,9 +47,10 @@ class Tuner:
         self.past_covariates = None
         self.future_covariates = None
 
-    def __tune_model(self, modelName):
-        model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
-        model_name = model.__name__
+    def __tune_model(self, model: Model):
+        #model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
+        model_name = model.name
+        model = model.forecastingModel
         
         def objective(trial, model=model):
             
@@ -66,9 +68,8 @@ class Tuner:
                     if hasattr(config, param_name): 
                         params[param_name] = getattr(config, param_name)
                     
-                    if param_name in ["lags_future_covariates", "lags_past_covariates"]: #kwargs and covariates should be handled elsewhere
+                    if param_name in ["lags_future_covariates", "lags_past_covariates"]:
                         # TODO: Implement handling of kwargs
-
                         if self.past_covariates is None and self.future_covariates is None:
                             self.past_covariates = generate_past_covariates(self.series)
                             self.future_covariates = generate_future_covariates(self.series)
@@ -130,11 +131,11 @@ class Tuner:
                 return study
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
-    def tune_model_x(self, modelName):
+    def tune_model_x(self, model : Model):
         try:
-            print(f"\Tuning {modelName} for service {self.serviceId}\n")
-            study = self.__tune_model(modelName)
-            print(f"\nDone with: {modelName} for service {self.serviceId}\n")
+            print(f"\Tuning {model.name} for service {self.serviceId}\n")
+            study = self.__tune_model(model)
+            print(f"\nDone with: {model.name} for service {self.serviceId}\n")
             return study
         except Exception as err:
             print(f"\nError: {err=}, {type(err)=}\n")

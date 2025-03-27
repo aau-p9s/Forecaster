@@ -181,3 +181,5 @@ pyrightconfig.json
 .envrc
 
 postgres_data
+ML/Darts/Assets
+model-tuning

@@ -20,7 +20,7 @@ def scaler(timeseries):
     scaled = scaler.fit_transform(timeseries)
     return scaled
 
-def run_transformer_pipeline(timeseries: TimeSeries) -> TimeSeries:
+def run_transformer_pipeline(timeseries: TimeSeries) -> tuple[TimeSeries, float]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
     
     timeseries, missing_values_ratio = handle_missing_values(timeseries)

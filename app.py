@@ -11,7 +11,10 @@ def insert_model():
 if __name__ == '__main__':
     #start_api()
 
-    series = load_data("Assets/ServerRequest1.csv", "min")
+    series = load_data("ML\Darts\Assets\ServerRequest1.csv", "min")
     series, missing_values_ratio = preprocessing.run_transformer_pipeline(series)
+    print(f"Ratio of missing values: {missing_values_ratio}\n")
     tuner = Tuner("testId", series, 4)
-    tuner.tune_model_x("RandomForest")
+    with open("Assets/autotheta_model.pth", "rb") as bin:
+        model = Model("testModelId", "RandomForest", bin.read(), "testId")
+    tuner.tune_model_x(model)

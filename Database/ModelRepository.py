@@ -24,4 +24,4 @@ class ModelRepository:
 
     def insert_model(self, model:Model) -> None:
         print(model.binary)
-        self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid") VALUES (%s, %s, %s, %s, %s)', [gen_uuid(), model.name, model.binary, model.trainedTime, model.serviceId])
+        self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid") VALUES (%s, %s, %s, %s, %s)', [gen_uuid(), model.name, psycopg2.Binary(model.forecastingModel), model.trainedTime, model.serviceId])

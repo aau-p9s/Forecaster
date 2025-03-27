@@ -2,10 +2,7 @@
 from Database.ModelRepository import ModelRepository
 from .Darts.Training.ensemble_training import EnsembleTrainer
 from Database.Models.Model import Model
-from darts.models.forecasting.forecasting_model import ForecastingModel
-import pickle
-import uuid
-import os
+
 
 class Trainer:
     trained_models = []
@@ -21,7 +18,8 @@ class Trainer:
         for model in self.models:
             try:
                 # 1. Train model using Darts
-                model.binary = model.binary.fit(self.series)
+                model.forecastingModel = model.forecastingModel.fit(self.series)
+                print(f"{model.__class__.__name__} fitted")
                 
                 # 2. Insert trained model into db
                 self.repository.insert_model(model)
