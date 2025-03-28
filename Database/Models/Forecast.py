@@ -1,4 +1,6 @@
+from json import dumps, loads
 from typing import Any
+import datetime
 from darts import TimeSeries
 
 
@@ -9,4 +11,10 @@ class Forecast:
         self.error = error
 
     def serialize(self) -> str:
-        return self.forecast.to_json()
+        data = loads(self.forecast.to_json())["data"]
+        
+        return dumps({
+            "columns":["cpu"],
+            "timestamp":[datetime.datetime.fromtimestamp(d[0]).strftime("%y-%m-%dT%H:%M:%S") for d in data],
+            "value":[[d[1]] for d in data]
+        })

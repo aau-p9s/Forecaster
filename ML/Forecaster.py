@@ -1,4 +1,5 @@
 from darts import TimeSeries
+from psycopg2 import DatabaseError
 from Database.ForecastRepository import ForecastRepository
 from darts.metrics import rmse
 from Database.Models.Forecast import Forecast
@@ -28,6 +29,8 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             forecast_error = rmse(historicalData, forecast)
             self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
 
+        if not self.forecasts:
+            raise DatabaseError
         forecast = self.find_best_forecast()
         print(f"{forecast.modelId=}")
         print(f"{forecast.error=}")

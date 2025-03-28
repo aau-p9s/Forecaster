@@ -181,3 +181,6 @@ pyrightconfig.json
 .envrc
 
 postgres_data
+
+# editor files
+.vscode

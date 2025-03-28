@@ -25,3 +25,6 @@ class ServiceRepository:
             row = result[0]
             return Service(row[0], row[1], row[2])
         raise DatabaseError
+
+    def delete_service(self, service:Service) -> None:
+        self.db.execute("DELETE FROM services WHERE id = %s", [service.id])
