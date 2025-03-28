@@ -3,8 +3,10 @@ from darts.datasets import AirPassengersDataset
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
+from Database.HistoricalRepository import HistoricalRepository
 from Database.ModelRepository import ModelRepository
 from Database.Models.Forecast import Forecast
+from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 
 @pytest.fixture
@@ -46,21 +48,14 @@ def test_insert_model(mock_db):
 
     assert result.get_binary() == model.get_binary() # Check inserted model
 
-def test_get_latest_forecast(mock_db):
+def test_get_historical(mock_db):
     """Test getting the latest forecast"""
-    data = AirPassengersDataset().load()
-    forecast = Forecast("model-id", data)
-
+    historical = Historical("historical-id", "service", 0.0, "{'data':'xd'}")
     mock_db.execute_get.return_value = [
-        (forecast.modelId, forecast.serialize())
+        (historical.id, historical.service_id, historical.timestamp, historical.data)
     ]
+    
+    repo = HistoricalRepository(mock_db)
+    result = repo.get_by_service("service")
 
-    forecast_repo = ForecastRepository(mock_db)
-    result = forecast_repo.get_latest_forecast(forecast.modelId, "service")
-
-    mock_db.execute_get.assert_called_once_with(
-        'SELECT modelid, forecast FROM forecasts WHERE "modelid" = %s AND "serviceid" = %s ORDER BY "createdat" DESC LIMIT 1;',
-        [ forecast.modelId, "service" ]
-
-    )
-    assert result.serialize() == forecast.serialize()  # Ensure forecasts matches
+    assert result[0].data == historical.data
