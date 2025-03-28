@@ -1,20 +1,14 @@
-from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
 from darts import TimeSeries
+from Database.ForecastRepository import ForecastRepository
 from darts.metrics import rmse
-from darts.models.forecasting.forecasting_model import ForecastingModel
-
-class Forecast:
-    def __init__(self, modelId, forecast: TimeSeries, error=float('inf')):
-        self.modelId = modelId
-        self.forecast = forecast
-        self.error = error
+from Database.Models.Forecast import Forecast
+from Database.Models.Model import Model
 
 class Forecaster: # Each service has one of these to create / keep track of forecasts
-    forecasts = []
+    forecasts:list[Forecast] = []
     
     def __init__(self, models: list[Model], serviceId, repository:ForecastRepository):
-        self.models = models
+        self.models:list[Model] = models
         self.serviceId = serviceId
         self.repository = repository
     
@@ -27,14 +21,17 @@ class Forecaster: # Each service has one of these to create / keep track of fore
         """
         for model in self.models:
             # Use predict from Darts and backtest to calculate errors for models on historical data here
-            forecast = model.binary.predict(forecastHorizon)
+            forecast = model.model.predict(forecastHorizon)
+            # TODO: use real data
+            if historicalData is None:
+                historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
             forecast_error = rmse(historicalData, forecast)
             self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
 
         forecast = self.find_best_forecast()
         print(f"{forecast.modelId=}")
-        print(f"{forecast.error}")
-        #self.repository.insert_forecast(forecast.modelId, forecast.forecast, forecast.error)
+        print(f"{forecast.error=}")
+        self.repository.insert_forecast(forecast, self.serviceId)
         return forecast
 
     def find_best_forecast(self): # forecast ranker

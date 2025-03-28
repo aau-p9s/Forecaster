@@ -1,0 +1,14 @@
+FROM unit8/darts:latest
+
+WORKDIR /src
+
+COPY Utils ./Utils
+COPY Database ./Utils/Database
+COPY Assets ./Assets
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN chmod +x /src/Utils/init_db.py
+
+ENTRYPOINT ["/src/Utils/init_db.py"]

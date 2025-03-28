@@ -8,6 +8,8 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
 
   forecaster:
     image: ghcr.io/aau-p9s/forecaster:latest
@@ -25,6 +27,3 @@ services:
 
     depends_on:
       - db
-
-networks:
-  optuna-net:
