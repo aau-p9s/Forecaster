@@ -33,9 +33,6 @@ class Predict(Resource):
         else:
             thread.join()
 
-        # TODO: implement logic
-        # newest = Forecast(data[0], data[1])
-
         return Response(status=200, response=dumps({"message": f"Forecast finished for {serviceId}"}))#, "forecast":newest.forecast}))
 
 
