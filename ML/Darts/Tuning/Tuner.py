@@ -47,16 +47,20 @@ class Tuner:
         self.past_covariates = None
         self.future_covariates = None
 
-    def __tune_model(self, model: Model):
-        #model = next((m for m in self.models if str.lower(modelName) in str.lower(m.__name__)), None)
-        model_name = model.name
-        model = model.forecastingModel
+    def __tune_model(self, model: Model | str):
+        if (isinstance(model, str)): # Used for testing
+            self.model = next((m for m in self.models if str.lower(model) in str.lower(m.__name__)), None)
+            model_name = self.model.__name__
+        else:
+            model_name = model.name
+            self.model = model.forecastingModel
         
-        def objective(trial, model=model):
+        def objective(trial, model=self.model):
             
             # Get the model parameters
             model_class = model
             model_params = model._get_default_model_params()
+            # model._model_params
             config = HyperParameterConfig(trial, model, series=self.train_series)
             uses_covariates = False
         
@@ -67,7 +71,8 @@ class Tuner:
                     # Retrieve the parameter value from the config
                     if hasattr(config, param_name): 
                         params[param_name] = getattr(config, param_name)
-                    
+                    else:
+                        params[param_name] = param_default
                     if param_name in ["lags_future_covariates", "lags_past_covariates"]:
                         # TODO: Implement handling of kwargs
                         if self.past_covariates is None and self.future_covariates is None:
@@ -75,9 +80,6 @@ class Tuner:
                             self.future_covariates = generate_future_covariates(self.series)
                     
                     # If not present in config, use the default value
-                    if param_name == "kwargs":
-                        params.pop["kwargs"]
-
                 except AttributeError as ae:
                     # Attribute does not exist in config
                     print(ae)
@@ -86,20 +88,34 @@ class Tuner:
                     # Other exceptions, set the parameter to default
                     print(f"Error occurred while setting '{param_name}': {str(e)}, using default value.")
                     #params[param_name] = param_default
-                
-            if all(x is not None for x in (params["lags_future_covariates"], params["lags_past_covariates"], self.past_covariates, self.future_covariates)):
+            if params.get("kwargs") is not None:
+                del params["kwargs"]
+            if params.get("prophet_kwargs") is not None:
+                del params["prophet_kwargs"]
+            if all(x is not None for x in (params.get("lags_future_covariates"), params.get("lags_past_covariates"), self.past_covariates, self.future_covariates)):
                 uses_covariates = True
             else:
-                params["lags_future_covariates"] = None
-                params["lags_past_covariates"] = None
-
+                for param in ["lags_future_covariates", "lags_past_covariates", self.past_covariates, self.future_covariates, "lags"]:
+                    if param not in model_params and param in params:
+                        # If the parameter does not exist in model_params, remove it from params
+                        del params[param]
+                    elif param in model_params and param in params:
+                        if param == "lags_future_covariates":
+                            params["lags_future_covariates"] = None
+                        elif param == "lags_past_covariates":
+                            params["lags_past_covariates"] = None
+                        elif param == "past_covariates":
+                            self.past_covariates = None
+                        elif param == "future_covariates":
+                            self.future_covariates = None
 
             # Instantiate the model
+
             if model is not None:
                 model = model_class(**params)
             else:
                 raise Exception("Model not found")
-            print(f"MODEL PARAMS: {model.model_params}")
+            print(f"MODEL PARAMS: \n{model.model_params}\n")
 
             # Fit the model
             print("TRAINING")
@@ -123,19 +139,23 @@ class Tuner:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
 
     def tune_all_models(self):
+        studies = []
         for model in self.models:
             print(f"\Tuning {model} for service {self.serviceId}\n")
             try:
                 study = self.__tune_model(model())
                 print(f"\nDone with {model} for service {self.serviceId}\n")
-                return study
+                studies.append(study)
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
-    def tune_model_x(self, model : Model):
+        return studies
+    def tune_model_x(self, model : Model | str):
         try:
-            print(f"\Tuning {model.name} for service {self.serviceId}\n")
+            if (isinstance(model, Model)):
+                print(f"\Tuning {model.name} for service {self.serviceId}\n")
             study = self.__tune_model(model)
-            print(f"\nDone with: {model.name} for service {self.serviceId}\n")
+            if (isinstance(model, Model)):
+                print(f"\nDone with: {model.name} for service {self.serviceId}\n")
             return study
         except Exception as err:
-            print(f"\nError: {err=}, {type(err)=}\n")
+            print(f"\nError: {err}, {type(err)}\n")

@@ -10,6 +10,12 @@ def handle_missing_values(timeseries):
     filled_series = missing_values.fill_missing_values(timeseries)
     return (filled_series, ratio)
 
+def handle_negative_values(timeseries:TimeSeries):
+    """Removes entries where the values are zero"""
+    mask = timeseries.values().flatten() > 0
+    filtered_series = timeseries.drop_before(timeseries.time_index[mask][0]) if mask.any() else None
+    return filtered_series
+
 def denoiser(timeseries):
     kf = KalmanFilter(dim_x=1)
     kf.fit(timeseries)
@@ -22,7 +28,7 @@ def scaler(timeseries):
 
 def run_transformer_pipeline(timeseries: TimeSeries) -> tuple[TimeSeries, float]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
-    
+    timeseries = handle_negative_values(timeseries)
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
     timeseries = scaler(timeseries)
     return (timeseries, missing_values_ratio)

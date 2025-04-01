@@ -1,11 +1,12 @@
 from darts.utils.utils import ModelMode, SeasonalityMode, TrendMode
 import optuna
 import inspect
+from darts.dataprocessing.transformers import Scaler
 
 class HyperParameterConfig:
 
     accepts_n_epochs = [] # Models which accept number of epochs, should maybe be set at fixed number
-
+    
     def __init__(self, trial, model_class, series):
         """
         Initialize hyperparameter configuration for a specific model class.
@@ -14,7 +15,7 @@ class HyperParameterConfig:
         - trial: optuna.trial.Trial instance.
         - model_class: The model class for which to generate hyperparameters.
         """
-        
+        self.model_class = model_class
         self.MODEL_MODES = {
             "additive": ModelMode.ADDITIVE,
             "multiplicative": ModelMode.MULTIPLICATIVE,
@@ -29,6 +30,30 @@ class HyperParameterConfig:
             "linear": TrendMode.LINEAR,
             "exponential": TrendMode.EXPONENTIAL
         }
+        
+        def encode_time(idx):
+            return (idx.year - 2025) + (idx.dayofyear / 365) + (idx.hour / 24) + (idx.minute / 1440)
+        self.ENCODERS = {
+            "month": {
+                'cyclic': {'future': ['month', 'minute']},  # Add minute-level cyclic encoding
+                'datetime_attribute': {'future': ['hour', 'dayofweek', 'dayofyear']},  # Add dayofyear
+                'position': {'past': ['relative'], 'future': ['relative']},
+                'custom': {'past': [encode_time]},  # Use improved time encoding
+                'transformer': Scaler(),
+                'tz': 'CET'
+            },
+            "none": None
+        }
+
+        self.SEASONALITIES = {
+            "daily": dict({
+                'name': "daily",  # (name of the seasonality component),
+                'seasonal_periods': 1440, # (nr of steps composing a season),
+                'mode': "additive"  # ('additive' or 'multiplicative')
+            }),
+            "default": None
+        }
+
         self.series = series
         self.valid_params = self.get_valid_params(model_class)
         self.suggest_parameters(trial)
@@ -55,13 +80,19 @@ class HyperParameterConfig:
             # Extract seasonal order components, or set default values if not provided
             D, P, Q, s = parameters.get("seasonal_order", (0, 0, 0, 0))
 
-        # Suggest non-seasonal ARIMA parameters
         if "p" in self.valid_params:
+            # Ensure `p` is not equal to `s`
             parameters["p"] = trial.suggest_int("p", 0, 12)
+            
+            while P * s == parameters.get("p"):
+                P = trial.suggest_int("P", 0, 5)
+            
         if "d" in self.valid_params:
             parameters["d"] = trial.suggest_int("d", 0, 2)  # Limit differencing to avoid over-differencing
         if "q" in self.valid_params:
             parameters["q"] = trial.suggest_int("q", 0, 12)
+            
+        
 
         # Ensure P, Q are distinct from p, q
         if "seasonal_order" in self.valid_params:
@@ -75,16 +106,9 @@ class HyperParameterConfig:
 
             parameters["s"] = s  # Ensure s > 1 for seasonality
 
-            # Compute total differencing
-            total_differencing = parameters["d"] + D
-
-            # Set trend based on total differencing
-            if total_differencing >= 2:
-                parameters["trend"] = None  # Differencing eliminates lower-order trends
-            elif total_differencing == 1:
-                parameters["trend"] = "t"  # Linear trend allowed
-            else:
-                parameters["trend"] = trial.suggest_categorical("trend", ["n", "c", "t", "ct"])  # Flexible trend selection
+            parameters["trend"] = trial.suggest_categorical("trend", ["n", "c", "t", "ct"])  # Flexible trend selection
+            if parameters.get("d") + D > 0 and parameters.get("trend") == "c":
+                raise optuna.TrialPruned()  # Skip invalid trials
 
         if "hidden_fc_sizes" in self.valid_params:
             parameters["hidden_fc_sizes"] = trial.suggest_int("hidden_fc_size", 8, 256)
@@ -103,6 +127,11 @@ class HyperParameterConfig:
                 parameters["output_chunk_shift"] = trial.suggest_int("output_chunk_shift", 0, 10)
 
 
+        if "model" in self.valid_params:
+            parameters["model"] = trial.suggest_categorical("model", ["LSTM", "GRU", "RNN"])
+
+        if "nr_epochs_val_period" in self.valid_params:
+            parameters["nr_epochs_val_period"] = trial.suggest_int("nr_epochs_val_period", 1, 20)
 
         if "hidden_dim" in self.valid_params:
             parameters["hidden_dim"] = trial.suggest_int("hidden_dim", 10, 100)
@@ -114,13 +143,42 @@ class HyperParameterConfig:
             parameters["n_rnn_layers"] = trial.suggest_int("n_rnn_layers", 1, 3)
 
         if "batch_size" in self.valid_params:
-            parameters["batch_size"] = trial.suggest_categorical("batch_size", [16, 32, 64])
+            parameters["batch_size"] = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256, 512])
 
         if "n_epochs" in self.valid_params:
             parameters["n_epochs"] = trial.suggest_int("n_epochs", 10, 100)
 
         if "training_length" in self.valid_params:
             parameters["training_length"] = trial.suggest_int("training_length", 1, len(self.series))
+
+        if "activation" in self.valid_params:
+            parameters["activation"] = trial.suggest_categorical("activation", ["ReLU",
+                "ELU",
+                "Hardshrink",
+                "Hardsigmoid",
+                "Hardtanh",
+                "Hardswish",
+                "LeakyReLU",
+                "LogSigmoid",
+                "MultiheadAttention",
+                "PReLU",
+                "ReLU",
+                "ReLU6",
+                "RReLU",
+                "SELU",
+                "CELU",
+                "GELU",
+                "Sigmoid",
+                "SiLU",
+                "Mish",
+                "Softplus",
+                "Softshrink",
+                "Softsign",
+                "Tanh",
+                "Tanhshrink",
+                "Threshold",
+                "GLU"
+            ])
 
         if "lr" in self.valid_params:
             parameters["lr"] = trial.suggest_float("lr", 5e-5, 1e-3, log=True)
@@ -139,6 +197,16 @@ class HyperParameterConfig:
 
         if "layers_widths" in self.valid_params:
             parameters["layers_widths"] = trial.suggest_int("layer_widths", 32, 256)
+
+        if "layers_widths" in self.valid_params:
+            parameters["layers_widths"] = trial.suggest_int("layer_widths", 32, 256)
+
+        if parameters["generic_architecture"]:
+            if "expansion_coefficient_dim" in self.valid_params:
+                parameters["expansion_coefficient_dim"] = trial.suggest_int("expansion_coefficient_dim", 1, 50)
+        else:
+            if "trend_polynomial_degree" in self.valid_params:
+                parameters["trend_polynomial_degree"] = trial.suggest_int("trend_polynomial_degree", 1, 50)
 
         while all(param in self.valid_params for param in ["lags", "lags_past_covariates", "lags_future_covariates"]) and \
             not any(parameters.get(param) is not None for param in ["lags", "lags_past_covariates", "lags_future_covariates"]):
@@ -169,16 +237,51 @@ class HyperParameterConfig:
             parameters["start_q"] = trial.suggest_int("start_q", 0, 1)
 
         if "trend" in self.valid_params:
-            parameters["trend"] = trial.suggest_categorical('trend', ["n", "c", "t", "ct"])
+            if "ExponentialSmoothing" in self.model_class.__name__:
+                trend_str = trial.suggest_categorical("trend", list(self.MODEL_MODES.keys()))
+                parameters["trend"] = self.MODEL_MODES[trend_str]
+            elif "FFT" in self.model_class.__name__:
+                parameters["trend"] = trial.suggest_categorical("trend", ["poly", "exp"])
+            else:
+                parameters["trend"] = trial.suggest_categorical('trend', ["n", "c", "t", "ct"])
+        
+        if "trend_poly_degree" in self.valid_params and parameters["trend"] is "poly":
+            parameters["trend_poly_degree"] = trial.suggest_int("trend_poly_degree", 1, 5)
 
         if "model_mode" in self.valid_params:
-            parameters["model_mode"] = trial.suggest_categorical("model_mode", self.MODEL_MODES.keys())
+            model_mode_str = trial.suggest_categorical("model_mode", self.MODEL_MODES.keys())
+            parameters["mod"] = self.MODEL_MODES[model_mode_str]
 
         if "seasonal" in self.valid_params:
-            parameters["seasonal"] = trial.suggest_categorical("seasonal", self.SEASONALITY_MODES.keys())
+            seasonal_str = trial.suggest_categorical("seasonal", list(self.SEASONALITY_MODES.keys()))
+            parameters["seasonal"] = self.SEASONALITY_MODES[seasonal_str]
+
+        if "add_encoders" in self.valid_params: # Possibly add more encodings
+            encoder_str = trial.suggest_categorical("add_encoders", list(self.ENCODERS.keys()))
+            parameters["add_encoders"] = self.ENCODERS[encoder_str]
+        
+        if "add_seasonalities" in self.valid_params: 
+            seasonalities_str = trial.suggest_categorical("add_seasonalities", list(self.SEASONALITIES.keys()))
+            parameters["add_seasonalities"] = self.SEASONALITIES[seasonalities_str]
+
+        if "country_holidays" in self.valid_params:
+            parameters["country_holidays"] = trial.suggest_categorical("country_holidays", ["DK", None])
+
+        if "cap" in self.valid_params:
+            parameters["cap"] = trial.suggest_float("cap", 100.0, 10000.0, log=True)
+
+        if "floor" in self.valid_params:
+            parameters["floor"] = trial.suggest_float("floor", 0.0, parameters["cap"] * 0.5)
+
+        if "season_mode" in self.valid_params:
+            season_str = trial.suggest_categorical("season_mode", list(self.SEASONALITY_MODES.keys()))
+            parameters["season_mode"] = self.SEASONALITY_MODES[season_str]
 
         if "damped" in self.valid_params:
-            parameters["damped"] = trial.suggest_categorical("damped", [True, False]) if self.MODEL_MODES[trial.suggest_categorical("model_mode", self.MODEL_MODES.keys())] != ModelMode.NONE else False
+            if parameters.get("trend") == ModelMode.NONE:
+                parameters["damped"] = False
+            else:
+                parameters["damped"] = trial.suggest_categorical("damped", [True, False]) if self.MODEL_MODES[trial.suggest_categorical("model_mode", self.MODEL_MODES.keys())] != ModelMode.NONE else False
 
         if "use_damped_trend" in self.valid_params:
             parameters["use_damped_trend"] = trial.suggest_categorical("use_damped_trend", [True, False, None])
@@ -194,7 +297,16 @@ class HyperParameterConfig:
 
         if "use_box_cox" in self.valid_params:
             parameters["use_box_cox"] = trial.suggest_categorical("use_box_cox", [True, False])
+        
+        if "seasonality_period" in self.valid_params:
+            parameters["seasonality_period"] = trial.categorical("seasonality_period", None) # Is inferred from fit data
+        
+        if "seasonal_periods" in self.valid_params:
+            parameters["seasonal_periods"] = trial.categorical("seasonal_periods", ["freq"], 7, 12, 24)
 
+        if "use_arma_errors" in self.valid_params:
+            parameters["use_arma_errors"] = trial.categorical("use_arma_errors", [True, False, None])
+        
         if "theta" in self.valid_params:
             parameters["theta"] = trial.suggest_int("theta", 1, 3)
 
@@ -206,6 +318,9 @@ class HyperParameterConfig:
 
         if "decoder_output_dim" in self.valid_params:
             parameters["decoder_output_dim"] = trial.suggest_int("decoder_output_dim", 1, 12)
+
+        if "ff_size" in self.valid_params:
+            parameters["ff_size"] = trial.suggest_int("ff_size", 1, 12)
 
         if "temporal_width_past" in self.valid_params:
             parameters["temporal_width_past"] = trial.suggest_int("temporal_width_past", 1, 168)
@@ -224,6 +339,9 @@ class HyperParameterConfig:
 
         if "use_layer_norm" in self.valid_params:
             parameters["use_layer_norm"] = trial.suggest_categorical("use_layer_norm", [True, False])
+        
+        if "normalization" in self.valid_params:
+            parameters["normalization"] = trial.suggest_categorical("normalization", [True, False])
 
         if "d_model" in self.valid_params:
             parameters["d_model"] = trial.suggest_int("d_model", 32, 256)
@@ -254,15 +372,27 @@ class HyperParameterConfig:
 
         if "kernel_size" in self.valid_params:
             parameters["kernel_size"] = trial.suggest_categorical("kernel_size", [3, 5, 7])
-
+        
         if "hidden_size" in self.valid_params:
             parameters["hidden_size"] = trial.suggest_int("hidden_size", 16, 256)
 
         if "num_attention_heads" in self.valid_params:
-            parameters["num_attention_heads"] = trial.suggest_int("num_attention_heads", 1, 8)
+            parameters["num_attention_heads"] = trial.suggest_int("num_attention_heads", 3, 6)
+
+        if "const_init" in self.valid_params:
+            parameters["const_init"] = trial.suggest_categorical("const_init", [True, False])
+
+        if "shared_weights" in self.valid_params:
+            parameters["shared_weights"] = trial.suggest_categorical("shared_weights", [True, False])
+
+        if "num_attention_heads" in self.valid_params:
+            parameters["num_attention_heads"] = trial.suggest_int("num_attention_heads", 3, 6)
+
+        if "full_attention" in self.valid_params:
+            parameters["full_attention"] = trial.suggest_categorical("full_attention", [True, False])
 
         if "feed_forward" in self.valid_params:
-            parameters["feed_forward"] = trial.suggest_categorical("feed_forward", ["GLU", "Bilinear", "ReGLU", "GEGLU", "SwiGLU", "ReLU", "GELU"])
+            parameters["feed_forward"] = trial.suggest_categorical("feed_forward", ["GLU", "Bilinear", "ReGLU", "GEGLU", "SwiGLU", "ReLU", "GELU", "GatedResidualNetwork"])
 
         if "hidden_continuous_size" in self.valid_params:
             parameters["hidden_continuous_size"] = trial.suggest_int("hidden_continuous_size", 8, 256)
@@ -272,15 +402,38 @@ class HyperParameterConfig:
             
         if "season_length" in self.valid_params:
             parameters["season_length"] = trial.suggest_int("season_length", 12, 2880)
+        
+        if "nr_freqs_to_keep" in self.valid_params:
+            parameters["nr_freqs_to_keep"] = trial.suggest_int("nr_freqs_to_keep", 100, 2880)
 
         if "model" in self.valid_params:
             parameters["model"] = "Z"
-            
+        
         if "trend_mode" in self.valid_params:
-            parameters["trend_mode"] = trial.suggest_categorical("trend_mode", self.TREND_MODES.keys())
+            trend_mode_str = trial.suggest_categorical("trend_mode", self.TREND_MODES.keys())
+            parameters["trend_mode"] = self.TREND_MODES[trend_mode_str]
             
         if "norm_type" in self.valid_params:
             parameters["norm_type"] = trial.suggest_categorical("trend_mode", ["LayerNorm", "RMSNorm", "LayerNormNoBias", None])
+
+        if "multi_models" in self.valid_params:
+            parameters["multi_models"] = trial.suggest_categorical("multi_models", [True, False])
+        
+        if "use_static_covariates" in self.valid_params:
+            parameters["use_static_covariates"] = trial.suggest_categorical("use_static_covariates", [True, False])
+
+        if "likelihood" in self.valid_params:
+            parameters["likelihood"] = trial.suggest_categorical("likelihood", ["quantile", "poisson", None])
+
+        if parameters["likelihood"] == "quantile":
+            if "quantiles" in self.valid_params:
+                parameters["quantiles"] = trial.suggest_float("quantiles", [0.1, 0.25, 0.5, 0.75, 0.9])
+        
+        if "n_estimators" in self.valid_params:
+            parameters["n_estimators"] = trial.suggest_int("n_estimators", 1, 200)
+
+        if "max_depth" in self.valid_params:
+            parameters["max_depth"] = trial.suggest_categorical("max_depth", [1, 50, 100, 200, None])
 
         for param, value in parameters.items():
             setattr(self, param, value)
@@ -292,5 +445,5 @@ class HyperParameterConfig:
         P = trial.suggest_int("P", 0, 5)
         D = trial.suggest_int("D", 0, 2)
         Q = trial.suggest_int("Q", 0, 5)
-        s = trial.suggest_int("s", 2, 12)
+        s = trial.suggest_categorical("s", [3, 4, 6, 7, 9, 12])
         return (P, D, Q, s)
