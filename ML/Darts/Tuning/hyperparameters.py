@@ -6,7 +6,7 @@ from darts.dataprocessing.transformers import Scaler
 class HyperParameterConfig:
 
     accepts_n_epochs = [] # Models which accept number of epochs, should maybe be set at fixed number
-    
+    _P = None
     def __init__(self, trial, model_class, series):
         """
         Initialize hyperparameter configuration for a specific model class.
@@ -79,12 +79,13 @@ class HyperParameterConfig:
 
             # Extract seasonal order components, or set default values if not provided
             D, P, Q, s = parameters.get("seasonal_order", (0, 0, 0, 0))
+            self._P = P
 
         if "p" in self.valid_params:
             # Ensure `p` is not equal to `s`
             parameters["p"] = trial.suggest_int("p", 0, 12)
             
-            while P * s == parameters.get("p"):
+            while self._P is not None and self._P * s == parameters.get("p"):
                 P = trial.suggest_int("P", 0, 5)
             
         if "d" in self.valid_params:
@@ -126,9 +127,20 @@ class HyperParameterConfig:
             else:
                 parameters["output_chunk_shift"] = trial.suggest_int("output_chunk_shift", 0, 10)
 
-
         if "model" in self.valid_params:
             parameters["model"] = trial.suggest_categorical("model", ["LSTM", "GRU", "RNN"])
+
+        if "num_layers_out_fc" in self.valid_params:
+            # Suggest the number of layers (1 to 3 layers)
+            num_layers = trial.suggest_int("num_layers_out_fc", 1, 3)  # Number of layers between 1 and 3
+            
+            # Suggest sizes for each layer (32 to 512 neurons)
+            layers_sizes = [
+                trial.suggest_int(f"layer_size_{i}", 32, 512) for i in range(num_layers)
+            ]
+            
+            # Set the suggested list of layer sizes to the parameters
+            parameters["num_layers_out_fc"] = layers_sizes
 
         if "nr_epochs_val_period" in self.valid_params:
             parameters["nr_epochs_val_period"] = trial.suggest_int("nr_epochs_val_period", 1, 20)
@@ -152,33 +164,10 @@ class HyperParameterConfig:
             parameters["training_length"] = trial.suggest_int("training_length", 1, len(self.series))
 
         if "activation" in self.valid_params:
-            parameters["activation"] = trial.suggest_categorical("activation", ["ReLU",
-                "ELU",
-                "Hardshrink",
-                "Hardsigmoid",
-                "Hardtanh",
-                "Hardswish",
-                "LeakyReLU",
-                "LogSigmoid",
-                "MultiheadAttention",
-                "PReLU",
-                "ReLU",
-                "ReLU6",
-                "RReLU",
-                "SELU",
-                "CELU",
-                "GELU",
-                "Sigmoid",
-                "SiLU",
-                "Mish",
-                "Softplus",
-                "Softshrink",
-                "Softsign",
-                "Tanh",
-                "Tanhshrink",
-                "Threshold",
-                "GLU"
-            ])
+            if "TSMixer" in self.model_class.__name__:
+                parameters["activation"] = trial.suggest_categorical("activation", ['ReLU', 'RReLU', 'PReLU', 'ELU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'GELU'])
+            else:
+                parameters["activation"] = trial.suggest_categorical("activation", ['GLU', 'Bilinear', 'ReGLU', 'GEGLU', 'SwiGLU', 'ReLU', 'GELU', 'relu', 'gelu'])
 
         if "lr" in self.valid_params:
             parameters["lr"] = trial.suggest_float("lr", 5e-5, 1e-3, log=True)
@@ -191,6 +180,12 @@ class HyperParameterConfig:
 
         if "generic_architecture" in self.valid_params:
             parameters["generic_architecture"] = trial.suggest_categorical("generic_architecture", [True, False])
+            if parameters.get("generic_architecture", False):
+                if "expansion_coefficient_dim" in self.valid_params:
+                    parameters["expansion_coefficient_dim"] = trial.suggest_int("expansion_coefficient_dim", 1, 50)
+            else:
+                if "trend_polynomial_degree" in self.valid_params:
+                    parameters["trend_polynomial_degree"] = trial.suggest_int("trend_polynomial_degree", 1, 50)
 
         if "num_stacks" in self.valid_params:
             parameters["num_stacks"] = trial.suggest_int("num_stacks", 1, 5) if trial.suggest_categorical("generic_architecture", [True, False]) else None
@@ -200,13 +195,6 @@ class HyperParameterConfig:
 
         if "layers_widths" in self.valid_params:
             parameters["layers_widths"] = trial.suggest_int("layer_widths", 32, 256)
-
-        if parameters["generic_architecture"]:
-            if "expansion_coefficient_dim" in self.valid_params:
-                parameters["expansion_coefficient_dim"] = trial.suggest_int("expansion_coefficient_dim", 1, 50)
-        else:
-            if "trend_polynomial_degree" in self.valid_params:
-                parameters["trend_polynomial_degree"] = trial.suggest_int("trend_polynomial_degree", 1, 50)
 
         while all(param in self.valid_params for param in ["lags", "lags_past_covariates", "lags_future_covariates"]) and \
             not any(parameters.get(param) is not None for param in ["lags", "lags_past_covariates", "lags_future_covariates"]):
@@ -245,7 +233,7 @@ class HyperParameterConfig:
             else:
                 parameters["trend"] = trial.suggest_categorical('trend', ["n", "c", "t", "ct"])
         
-        if "trend_poly_degree" in self.valid_params and parameters["trend"] is "poly":
+        if "trend_poly_degree" in self.valid_params and parameters["trend"] == "poly":
             parameters["trend_poly_degree"] = trial.suggest_int("trend_poly_degree", 1, 5)
 
         if "model_mode" in self.valid_params:
@@ -406,8 +394,11 @@ class HyperParameterConfig:
         if "nr_freqs_to_keep" in self.valid_params:
             parameters["nr_freqs_to_keep"] = trial.suggest_int("nr_freqs_to_keep", 100, 2880)
 
-        if "model" in self.valid_params:
+        if "model" in self.valid_params and self.model_class.__name__ not in ["BlockRNNModel", "RNNModel"]:
             parameters["model"] = "Z"
+        
+        if "add_relative_index" in self.valid_params:
+            parameters["add_relative_index"] = trial.suggest_categorical("add_relative_index", [True])
         
         if "trend_mode" in self.valid_params:
             trend_mode_str = trial.suggest_categorical("trend_mode", self.TREND_MODES.keys())
@@ -424,10 +415,10 @@ class HyperParameterConfig:
 
         if "likelihood" in self.valid_params:
             parameters["likelihood"] = trial.suggest_categorical("likelihood", ["quantile", "poisson", None])
+            if parameters["likelihood"] == "quantile":
+                if "quantiles" in self.valid_params:
+                    parameters["quantiles"] = trial.suggest_categorical("quantiles", [[0.1, 0.25, 0.5, 0.75, 0.9], [0.5], [0.01, 0.5, 0.99]])
 
-        if parameters["likelihood"] == "quantile":
-            if "quantiles" in self.valid_params:
-                parameters["quantiles"] = trial.suggest_float("quantiles", [0.1, 0.25, 0.5, 0.75, 0.9])
         
         if "n_estimators" in self.valid_params:
             parameters["n_estimators"] = trial.suggest_int("n_estimators", 1, 200)

@@ -94,8 +94,10 @@ class Tuner:
                 del params["prophet_kwargs"]
             if all(x is not None for x in (params.get("lags_future_covariates"), params.get("lags_past_covariates"), self.past_covariates, self.future_covariates)):
                 uses_covariates = True
+            elif params.get("add_relative_index"):
+                uses_covariates = True
             else:
-                for param in ["lags_future_covariates", "lags_past_covariates", self.past_covariates, self.future_covariates, "lags"]:
+                for param in ["lags_future_covariates", "lags_past_covariates", "past_covariates", "future_covariates", "lags"]:
                     if param not in model_params and param in params:
                         # If the parameter does not exist in model_params, remove it from params
                         del params[param]
@@ -110,7 +112,6 @@ class Tuner:
                             self.future_covariates = None
 
             # Instantiate the model
-
             if model is not None:
                 model = model_class(**params)
             else:
