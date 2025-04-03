@@ -114,6 +114,18 @@ class HyperParameterConfig:
         if "hidden_fc_sizes" in self.valid_params:
             parameters["hidden_fc_sizes"] = trial.suggest_int("hidden_fc_size", 8, 256)
 
+        if "symmetric" in self.valid_params:
+            parameters["symmetric"] = trial.suggest_categorical("symmetric", [False, True])
+        
+        if "cal_length" in self.valid_params:
+            parameters["cal_length"] = trial.suggest_categorical("cal_length", None)
+        
+        if "cal_stride" in self.valid_params:
+            parameters["cal_stride"] = trial.suggest_int("cal_stride", 1, 10)
+        
+        if "cal_num_samples" in self.valid_params:
+            parameters["cal_num_samples"] = trial.suggest_int("cal_num_samples", 1, 10)
+
         if "input_chunk_length" in self.valid_params:
             parameters["input_chunk_length"] = trial.suggest_int("input_chunk_length", 50, len(self.series) // 2)
 

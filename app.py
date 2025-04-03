@@ -17,4 +17,4 @@ if __name__ == '__main__':
     tuner = Tuner("testId", series, 4, trials=30)
     #with open("Assets/autotheta_model.pth", "rb") as bin:
     #    model = Model("testModelId", "AutoTheta", bin.read(), "testId")
-    tuner.tune_model_x("RNNModel")
+    tuner.tune_model_x("ConformalModel")
