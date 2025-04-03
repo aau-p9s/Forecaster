@@ -90,8 +90,25 @@ class Tuner:
                     #params[param_name] = param_default
             if params.get("kwargs") is not None:
                 del params["kwargs"]
+            if params.get("autotheta_args") is not None:
+                del params["autotheta_args"]
+            if params.get("autotheta_kwargs") is not None:
+                del params["autotheta_kwargs"]
             if params.get("prophet_kwargs") is not None:
                 del params["prophet_kwargs"]
+            if params.get("autoces_args") is not None:
+                del params["autoces_args"]
+            if params.get("autoces_kwargs") is not None:
+                del params["autoces_kwargs"]
+            if params.get("autoets_args") is not None:
+                del params["autoets_args"]
+            if params.get("autoTBATS_args") is not None:
+                del params["autoTBATS_args"]
+            if params.get("autoTBATS_kwargs") is not None:
+                del params["autoTBATS_kwargs"]
+            if params.get("autoarima_args") is not None:
+                del params["autoarima_args"]
+            
             if all(x is not None for x in (params.get("lags_future_covariates"), params.get("lags_past_covariates"), self.past_covariates, self.future_covariates)):
                 uses_covariates = True
             elif params.get("add_relative_index"):
