@@ -125,6 +125,7 @@ class Tuner:
             else:
                 model.fit(self.train_series)
             print("PREDICTING")
+
             forecast = model.predict(self.forecast_period)
             
             rmse_value = rmse(self.val_series, forecast)
@@ -135,28 +136,32 @@ class Tuner:
             #study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study = optuna.create_study(direction="minimize", storage="sqlite:///model-tuning", study_name=f"{self.serviceId}_{model_name}", load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
             study.optimize(objective, n_trials=self.trials, catch=(Exception, ))
-            return study
+            return (study, model)
         except Exception as err:
             print(f"\nSTUDY FAILED: {err=}, {type(err)=}\n")
 
-    def tune_all_models(self):
-        studies = []
+    def tune_all_models(self) -> list[tuple[optuna.Study, Model]]:
+        studies_and_models = []
         for model in self.models:
             print(f"\Tuning {model} for service {self.serviceId}\n")
             try:
-                study = self.__tune_model(model())
+                study, trained_model = self.__tune_model(model())
                 print(f"\nDone with {model} for service {self.serviceId}\n")
-                studies.append(study)
+                studies_and_models.append((study, trained_model))
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
-        return studies
+        return studies_and_models
     def tune_model_x(self, model : Model | str):
         try:
             if (isinstance(model, Model)):
                 print(f"\Tuning {model.name} for service {self.serviceId}\n")
-            study = self.__tune_model(model)
+            else:
+                print(f"\Tuning {model} for service {self.serviceId}\n")
+            study, trained_model = self.__tune_model(model)
             if (isinstance(model, Model)):
                 print(f"\nDone with: {model.name} for service {self.serviceId}\n")
-            return study
+            else:
+                print(f"\nDone with {model} for service {self.serviceId}\n")
+            return (study, trained_model)
         except Exception as err:
             print(f"\nError: {err}, {type(err)}\n")
