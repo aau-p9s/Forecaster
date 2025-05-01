@@ -15,5 +15,8 @@ writeScriptBin "reinit" ''
     rm -fr /tmp/autoscaler
     ${pkgs.git}/bin/git clone https://github.com/aau-p9s/Autoscaler /tmp/autoscaler
     echo "migrating db"
+
+    export AUTOSCALER__PGSQL__ADDR="${postgres_address}"
+
     ${dotnet-sdk_8}/bin/dotnet run --project /tmp/autoscaler/Autoscaler.DbUp > /tmp/dbup.stdout
 ''
