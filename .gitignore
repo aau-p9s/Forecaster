@@ -181,3 +181,4 @@ pyrightconfig.json
 .envrc
 
 postgres_data
+models
