@@ -20,9 +20,11 @@
         packages.${system} = {
             libs = pkgs.callPackage ./libs {};
             default = pkgs.callPackage ./nix-support/deploy.nix { inherit config; };
-            deploy = pkgs.callPackage ./nix-support/deploy.nix;
-            reset_and_reinitialize = pkgs.callPackage ./nix-support/reinit.nix { inherit config; };
-            reinit = pkgs.callPackage ./nix-support/reinit.nix;
+            deploy = pkgs.callPackage ./nix-support/deploy.nix { inherit config; };
+            reinit = pkgs.callPackage ./nix-support/reinit.nix { inherit config; };
+            test-deploy = pkgs.callPackage ./nix-support/test-deploy.nix { inherit config; };
+            start-database = pkgs.callPackage ./nix-support/start-database.nix { inherit config; };
+            stop-database = pkgs.callPackage ./nix-support/stop-database.nix { inherit config; };
             show_config = pkgs.writeScriptBin "show-config" ''
                 #!${pkgs.bash}/bin/bash
                 set -e
