@@ -251,7 +251,7 @@ class Tuner:
                 ):
                     params["pl_trainer_kwargs"] = {
                         "accelerator": "gpu",
-                        "devices": 0,  # change to self.gpu when implementing
+                        "devices": self.gpu,  # change to self.gpu when implementing
                         "strategy": "auto",
                     }
 
@@ -281,6 +281,9 @@ class Tuner:
                 rmse_value = rmse(val_target, forecast)
                 mae_value = mae(val_target, forecast)
                 smape_value = smape(val_target, forecast)
+
+                trial.set_user_attr("MAE", str(mae_value))
+                trial.set_user_attr("SMAPE", str(smape_value))
 
                 if rmse_value < self.best_score:
                     self.best_score = rmse_value
@@ -385,6 +388,7 @@ class Tuner:
                     "params": study.best_trial.params,
                     "trials": len(study.trials),
                     "failed_trials": len(failed_trials),
+                    "user_attrs": study.best_trial.user_attrs,
                 }
                 with open(f"{model_folder}/best_trial.json", "w") as f:
                     json.dump(best_trial_data, f, indent=4)
