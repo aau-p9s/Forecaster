@@ -21,8 +21,6 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           platforms: linux/amd64
 
-      - name: start image
-
       - name: test image
         run: |
           docker compose -f Assets/Deployment/docker-compose.yml up -d
