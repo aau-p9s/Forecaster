@@ -24,6 +24,6 @@ class ModelRepository:
         return [row[0] for row in self.db.execute_get('SELECT id from models')]
 
     def insert_model(self, model:Model) -> Model:
-        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid") VALUES (%s, %s, %s, %s, %s) RETURNING id, name, bin', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId])
+        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, type(model.scaler).__name__ if model.scaler else None])
         obj = pickle.loads(result[0][2])
         return Model(result[0][0], obj, result[0][1])

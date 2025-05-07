@@ -9,6 +9,7 @@ class Model:
         self.model = model
         self.trainedTime = datetime.date.today()
         self.serviceId = serviceId
+        self.scaler = None
 
     def get_binary(self):
         temporary_dir = tempfile.mkdtemp()
@@ -16,4 +17,12 @@ class Model:
         self.model.save(f"{temporary_dir}/model.pth")
         
         with open(f"{temporary_dir}/model.pth", "rb") as file:
+            return file.read()
+        
+    def get_scaler_binary(self):
+        temporary_dir = tempfile.mkdtemp()
+        
+        self.scaler.save(f"{temporary_dir}/scaler.pth")
+        
+        with open(f"{temporary_dir}/scaler.pth", "rb") as file:
             return file.read()
