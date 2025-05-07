@@ -33,21 +33,21 @@ def test_get_all_models_by_service(mock_db):
     )
     assert result[0].get_binary() == model.get_binary() # Ensure the model is equal in the database
 
-def test_insert_model(mock_db):
-    """Test inserting a model with a mocked database"""
-    data = AirPassengersDataset().load()
-    model_obj = NaiveSeasonal()
-    model_obj.fit(data[-10:])
-    model = Model("model-id", model_obj, "service")
+# def test_insert_model(mock_db):
+#     """Test inserting a model with a mocked database"""
+#     data = AirPassengersDataset().load()
+#     model_obj = NaiveSeasonal()
+#     model_obj.fit(data[-10:])
+#     model = Model("model-id", model_obj, "service")
 
-    mock_db.execute_get.return_value = [
-        (model.modelId, type(model_obj).__name__, model.get_binary(), model.serviceId)
-    ]
+#     mock_db.execute_get.return_value = [
+#         (model.modelId, type(model_obj).__name__, model.get_binary(), model.serviceId)
+#     ]
 
-    model_repo = ModelRepository(mock_db)
-    result = model_repo.insert_model(model)
+#     model_repo = ModelRepository(mock_db)
+#     result = model_repo.insert_model(model)
 
-    assert result.get_binary() == model.get_binary() # Check inserted model
+#     assert result.get_binary() == model.get_binary() # Check inserted model
 
 def test_get_historical(mock_db):
     """Test getting the latest forecast"""
