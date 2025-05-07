@@ -80,15 +80,16 @@ class Tuner:
         print(f"Using {self.device} and {self.gpu}\n")
         self.exclude_models = exclude_models
         # Optuna vars
-        # self.db_url = os.getenv("OPTUNA_STORAGE_URL", "postgresql://optuna:password@optuna-db:5431/optuna")
         self.logger = logging.getLogger()
+        os.makedirs("logs", exist_ok=True)
+        log_filename = os.path.join("logs", f"tuner_{str(serviceId)}_{datetime.now().strftime('%Y%m%d-%H%M%S')}.log")
         optuna.logging.get_logger("optuna").addHandler(
             logging.StreamHandler(sys.stdout)
         )
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(
             logging.FileHandler(
-                f"tuner.log_{datetime.now().strftime("%Y%m%d-%H%M%S")}", mode="w"
+                log_filename, mode="w"
             )
         )
         optuna.logging.enable_propagation()
