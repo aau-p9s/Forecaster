@@ -88,7 +88,7 @@ class Tuner:
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(
             logging.FileHandler(
-                f"tuner.log_{datetime.now().strftime("%Y%m%d-%H%M%S")}", mode="w"
+                f"tuner.log_{datetime.now().strftime('%Y%m%d-%H%M%S')}", mode="w"
             )
         )
         optuna.logging.enable_propagation()
