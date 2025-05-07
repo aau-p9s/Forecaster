@@ -64,7 +64,7 @@ def remove_outliers(series: TimeSeries, outlier_thresh):
 def run_transformer_pipeline(
     timeseries: TimeSeries,
     scale=True,
-    scaler_type: ScalerType,
+    scaler_type: ScalerType = ScalerType.NONE,
     resample="h",
     outlier_thresh=3000,
 ) -> tuple[TimeSeries, float]:
@@ -76,9 +76,9 @@ def run_transformer_pipeline(
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
     print("Removed missing values")
     print(timeseries.head())
-    if scale and scaler_instance is not None:
-        print(f"Scaling using {scaler_instance}")
-        timeseries = scaler(timeseries=timeseries, scaler_instance=scaler_instance)
+    if scale and ScalerType is not None:
+        print(f"Scaling using {scaler_type}")
+        timeseries = scaler(timeseries=timeseries, scaler_instance=scaler_type)
     else:
         print("Did not scale data")
     return (timeseries, missing_values_ratio)
