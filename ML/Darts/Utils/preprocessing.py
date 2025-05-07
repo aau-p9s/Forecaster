@@ -78,7 +78,7 @@ def run_transformer_pipeline(
     print(timeseries.head())
     if scale and ScalerType is not None:
         print(f"Scaling using {scaler_type}")
-        timeseries = scaler(timeseries=timeseries, scaler_instance=scaler_type)
+        timeseries = scaler(timeseries=timeseries, scaler_type=scaler_type)
     else:
         print("Did not scale data")
     return (timeseries, missing_values_ratio)
