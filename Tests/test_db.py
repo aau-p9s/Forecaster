@@ -1,5 +1,6 @@
 from pickle import loads
 from darts.datasets import AirPassengersDataset
+from darts.models import NaiveSeasonal
 import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
@@ -35,12 +36,13 @@ def test_get_all_models_by_service(mock_db):
 
 def test_insert_model(mock_db):
     """Test inserting a model with a mocked database"""
-    with open("Assets/test_model.pth", "rb") as file:
-        modelObj = loads(file.read())
-    model = Model("model-id", modelObj, "service")
+    data = AirPassengersDataset().load()
+    model_obj = NaiveSeasonal()
+    model_obj.fit(data[-10:])
+    model = Model("model-id", model_obj, "service")
 
     mock_db.execute_get.return_value = [
-        (model.modelId, type(modelObj).__name__, model.get_binary(), model.serviceId)
+        (model.modelId, type(model_obj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)

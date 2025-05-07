@@ -84,6 +84,7 @@ def test_forecaster(forecast_repository):
     data = AirPassengersDataset().load()
 
     model_obj = NaiveSeasonal()
+    model_obj.fit(data[-10:])
     model = Model("model-id", model_obj, "service")
     models = [model]
     forecaster = Forecaster(models, model.serviceId, forecast_repository)
