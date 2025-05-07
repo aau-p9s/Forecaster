@@ -22,9 +22,11 @@ jobs:
           platforms: linux/amd64
 
       - name: start image
-        run: docker compose -f Assets/Deployment/docker-compose.yml up -d
 
       - name: test image
         run: |
+          docker compose -f Assets/Deployment/docker-compose.yml up -d
           sleep 20
+          docker compose -f Assets/Deployment/docker-compose.yml ps
+          docker compose -f Assets/Deployment/docker-compose.yml logs forecaster
           curl localhost:8080/models
