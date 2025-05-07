@@ -1,9 +1,27 @@
 from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import matplotlib.pyplot as plt
 from darts import TimeSeries
 import pandas as pd
+
+from enum import Enum
+
+class ScalerType(str, Enum):
+    MINMAX = "minmax"
+    STANDARD = "standard"
+    NONE = "none"
+
+def build_scaler(scaler_type: ScalerType) -> Scaler:
+    if scaler_type == ScalerType.MINMAX:
+        scaler = Scaler(MinMaxScaler(feature_range=(0, 1)))
+    elif scaler_type == ScalerType.STANDARD:
+        scaler = Scaler(StandardScaler())
+    else:
+        return None
+    scaler._fit_called = True  # trick if using saved params manually
+    return scaler
 
 def handle_missing_values(timeseries):
     ratio = missing_values.missing_values_ratio(timeseries)
@@ -15,14 +33,13 @@ def denoiser(timeseries):
     kf.fit(timeseries)
     return kf.filter(timeseries)
 
-def scaler(timeseries):
-    scaler = Scaler()
-    scaled = scaler.fit_transform(timeseries)
+def scaler(timeseries: TimeSeries, scaler_type: Scaler) -> TimeSeries:
+    transformer = build_scaler(scaler_type)
+    scaled = transformer.fit_transform(timeseries)
     return scaled
 
 def run_transformer_pipeline(timeseries: TimeSeries):
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
-    
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
     timeseries = scaler(timeseries)
     return (timeseries, missing_values_ratio)

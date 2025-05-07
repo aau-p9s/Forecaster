@@ -9,7 +9,7 @@ class ModelRepository:
         self.db = db
 
     def get_all_models_by_service(self, serviceId) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [serviceId])
+        rows = self.db.execute_get('SELECT id, name, bin, scaler from models WHERE "serviceid" = %s;', [serviceId])
         return [Model(row[0], pickle.loads(row[2]), serviceId) for row in rows]
 
     def get_by_modelname_and_service(self, modelname, serviceId) -> Model:
@@ -24,6 +24,6 @@ class ModelRepository:
         return [row[0] for row in self.db.execute_get('SELECT id from models')]
 
     def insert_model(self, model:Model) -> Model:
-        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, type(model.scaler).__name__ if model.scaler else None])
+        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, model.scaler])
         obj = pickle.loads(result[0][2])
         return Model(result[0][0], obj, result[0][1])
