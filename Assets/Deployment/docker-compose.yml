@@ -12,7 +12,7 @@ services:
       - ./postgres_data:/var/lib/postgresql/data
 
   forecaster:
-    image: ghcr.io/aau-p9s/forecaster:latest
+    image: ghcr.io/aau-p9s/forecaster:test
     restart: always
     environment:
       FORECASTER__PGSQL__DATABASE: autoscaler

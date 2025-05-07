@@ -35,6 +35,7 @@ def test_get_all_models_by_service(mock_db):
 
 # def test_insert_model(mock_db):
 #     """Test inserting a model with a mocked database"""
+
 #     data = AirPassengersDataset().load()
 #     model_obj = NaiveSeasonal()
 #     model_obj.fit(data[-10:])

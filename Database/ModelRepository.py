@@ -1,3 +1,4 @@
+from time import time
 import pickle
 from Database.dbhandler import DbConnection
 import psycopg2

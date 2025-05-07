@@ -15,12 +15,17 @@ class Trainer:
 
     def train_model(self):
         for model in self.models:
-            # 1. Train model using Darts
-            # 2. return trained model
-            self.trained_models.append(Model("", model, self.serviceId))
+            try:
+                # 1. Train model using Darts
+                model.forecastingModel = model.forecastingModel.fit(self.series)
+                print(f"{model.__class__.__name__} fitted")
+                
+                # 2. Insert trained model into db
+                self.repository.insert_model(model)
+                print(f"{model.__class__.__name__} inserted in db")
 
-        for model in self.trained_models:
-            self.repository.insert_model(model)
+            except Exception as e:
+                print(f"Error training {model.__class__.__name__}: {str(e)}")
 
     def train_ensemble(self, ensemble_candidates):
         trainer = EnsembleTrainer(ensemble_candidates, self.series, self.forecast_period, split_train_val=self.split_train_val)
