@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import csv
-import pickle
-
-=======
->>>>>>> main
 from darts import TimeSeries
 from Database.ForecastRepository import ForecastRepository
 from darts.metrics import rmse
