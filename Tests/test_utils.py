@@ -102,7 +102,7 @@ def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_valu
     assert not ts.to_dataframe().isna().any().any()
     assert isinstance(ratio, float)
 
-    df_processed = ts.pd_dataframe()
+    df_processed = ts.to_dataframe()
 
     assert df_processed.values.min() >= 0, "Found values below 0, scaling failed"
     assert df_processed.values.max() <= 1, "Found values above 1, scaling failed"

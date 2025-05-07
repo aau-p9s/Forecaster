@@ -19,11 +19,10 @@ def mock_db():
 
 def test_get_all_models_by_service(mock_db):
     """Test fetching models for a service with a mocked database"""
-    with open("Assets/test_model.pth", "rb") as file:
-        modelObj = loads(file.read())
-    model = Model("model", modelObj, "service")
+    model_obj = NaiveSeasonal()
+    model = Model("model-id", model_obj, "service")
     mock_db.execute_get.return_value = [
-        ("model-id", type(modelObj).__name__, model.get_binary(), model.serviceId)
+        ("model-id", type(model_obj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
