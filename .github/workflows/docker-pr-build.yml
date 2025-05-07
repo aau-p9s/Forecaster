@@ -18,6 +18,11 @@ jobs:
       - name: Build Docker latest image
         uses: docker/build-push-action@v3
         with:
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           platforms: linux/amd64
 
+      - name: start image
+        run: docker compose -f Assets/Deployment/docker-compose.yml up -d
+
+      - name: test image
+        run: curl localhost:8080/models
