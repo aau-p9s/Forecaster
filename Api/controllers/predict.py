@@ -4,7 +4,7 @@ from flask import Response
 from flask_restx import Resource
 
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecasters, forecast_repository, settings_repository
+from ..lib.variables import api, model_repository, forecasters, forecast_repository, historical_repository
 
 @api.route("/predict/<string:serviceId>")
 class Predict(Resource):
@@ -16,9 +16,11 @@ class Predict(Resource):
             forecaster = Forecaster(models, serviceId, forecast_repository)
             # TODO: use horizon from settings
             #settings = settings_repository.get_settings(serviceId)
+            historical = historical_repository.get_by_service(serviceId)
+
             forecasters[serviceId] = {
                 "forecaster":forecaster,
-                "thread":Process(target=forecaster.create_forecasts, args=[12])
+                "thread":Process(target=forecaster.create_forecasts, args=[12, historical])
             }
 
         forecaster:Forecaster = forecasters[serviceId]["forecaster"]
@@ -32,11 +34,6 @@ class Predict(Resource):
             t.join()
         else:
             thread.join()
-
-        data = forecast_repository.get_forecasts_by_service(serviceId)
-        print(data)
-        # TODO: implement logic
-        # newest = Forecast(data[0], data[1])
 
         return Response(status=200, response=dumps({"message": f"Forecast finished for {serviceId}"}))#, "forecast":newest.forecast}))
 

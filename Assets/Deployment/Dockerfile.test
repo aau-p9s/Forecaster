@@ -10,9 +10,8 @@ COPY Assets ./Assets
 COPY Database ./Database 
 COPY ML ./ML
 COPY Utils ./Utils
+COPY Tests ./Tests
 COPY app.py .
 
 
-RUN chmod +x /src/app.py
-
-ENTRYPOINT ["/src/app.py"]
+ENTRYPOINT ["pytest"]

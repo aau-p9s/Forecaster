@@ -3,6 +3,7 @@ from flask import Flask
 from flask_restx import Api
 
 from Database.ForecastRepository import ForecastRepository
+from Database.HistoricalRepository import HistoricalRepository
 from Database.ModelRepository import ModelRepository
 from Database.ServiceRepository import ServiceRepository
 from Database.SettingsRepository import SettingsRepository
@@ -28,6 +29,7 @@ model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
 service_repository = ServiceRepository(db)
 settings_repository = SettingsRepository(db)
+historical_repository = HistoricalRepository(db)
 trainer_threads = []
 forecaster_threads = []
 forecasters:dict[str, dict] = {}

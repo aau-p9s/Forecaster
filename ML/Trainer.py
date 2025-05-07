@@ -3,10 +3,9 @@ from Database.ModelRepository import ModelRepository
 from .Darts.Training.ensemble_training import EnsembleTrainer
 from Database.Models.Model import Model
 
-
 class Trainer:
-    trained_models = []
-    def __init__(self, models : list[Model], serviceId, series, forecast_period, split_train_val, repository:ModelRepository):
+    trained_models:list[Model] = []
+    def __init__(self, models, serviceId, series, forecast_period, split_train_val, repository:ModelRepository):
         self.models = models
         self.serviceId = serviceId
         self.series = series

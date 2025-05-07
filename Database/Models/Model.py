@@ -1,20 +1,19 @@
 import datetime
-from darts.models.forecasting.forecasting_model import ForecastingModel
-import io
+import tempfile
 
+from darts.models.forecasting.forecasting_model import ForecastingModel
 
 class Model:
-    def __init__(self, modelId, name, binary, serviceId, checkpoint):
+    def __init__(self, modelId:str, model:ForecastingModel, serviceId):
         self.modelId = modelId
-        self.name = name
-        self.forecastingModel = self.load_model_from_blob(binary)
+        self.model = model
         self.trainedTime = datetime.date.today()
         self.serviceId = serviceId
-        self.checkpoint = checkpoint
 
-    def load_model_from_blob(self, blob):
-        """Converts a BLOB from the DB into a Darts forecasting model."""
-        with io.BytesIO(blob) as buffer:
-            buffered_reader = io.BufferedReader(buffer)
-            # Load the Darts model using the Darts method
-            return ForecastingModel.load(buffered_reader)
+    def get_binary(self):
+        temporary_dir = tempfile.mkdtemp()
+        
+        self.model.save(f"{temporary_dir}/model.pth")
+        
+        with open(f"{temporary_dir}/model.pth", "rb") as file:
+            return file.read()

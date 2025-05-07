@@ -1,18 +1,15 @@
-import re
 import pytest
 import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
-from darts.metrics import rmse
 from darts.timeseries import TimeSeries
 import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
 from darts.datasets import AirPassengersDataset
-from darts.models import StatsForecastAutoTheta
 from ML.Forecaster import Forecaster, Forecast
-import pytest
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
-from ML.Model import Model
+from Database.Models.Model import Model
+import pickle
 
 @pytest.fixture
 def mock_db():
@@ -85,17 +82,18 @@ def test_naive_ensemble_model(ensemble_training_local):
 
 def test_forecaster(forecast_repository):
     data = AirPassengersDataset().load()
-    with open("Assets/autotheta_model.pth", mode='rb') as file:
-        modelBin = file.read()
-    model = Model("testId", "AutoTheta", modelBin, "testServiceId")
+
+    with open("./Assets/test_model.pth", "rb") as file:
+        modelObj = pickle.loads(file.read())
+    model = Model("model-id", modelObj, "service")
     models = [model]
-    forecaster = Forecaster(models, "testServiceId", forecast_repository)
+    forecaster = Forecaster(models, model.serviceId, forecast_repository)
     
-    forecast = forecaster.create_forecasts(12, data)
+    forecast = forecaster.create_forecasts(13, data)
     
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
-    assert forecast.forecast.n_timesteps == 12
+    assert forecast.forecast.n_timesteps == 13
     assert isinstance(forecast, Forecast)
 
     # dump = forecast.forecast.to_json()

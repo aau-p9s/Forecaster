@@ -8,4 +8,5 @@ class Forecast:
         self.forecast = forecast
         self.error = error
 
-
+    def serialize(self) -> str:
+        return self.forecast.to_json()

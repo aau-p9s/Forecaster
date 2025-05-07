@@ -16,21 +16,19 @@ class Train(Resource):
         if not serviceId in trainers:
             trainer = Trainer(models, serviceId, None, None, None, model_repository)
             trainers[serviceId] = {
-                "trainer":trainer,
-                "thread":Process(target=trainer.train_model)
+                "trainer": trainer
             }
-            trainers[serviceId]["thread"].start()
-            return Response(status=200, response=dumps({"message":f"Trainer created and started for {serviceId}"}))
+
+        if trainers[serviceId]["thread"].is_alive():
+            trainers[serviceId]["thread"].join()
+            return Response(status=202, response=dumps({"message":f"Training was already in progress for {serviceId}"}))
 
         trainer:Trainer = trainers[serviceId]["trainer"]
-        thread:Process = trainers[serviceId]["thread"]
+        thread = Process(target=trainer.train_model)
+        trainers[serviceId]["thread"] = thread
+        thread.start()
+        thread.join()
 
-        if thread.is_alive():
-            return Response(status=202, response=dumps({"message":f"Training is already in progress for {serviceId}"}))
-        else:
-            thread = Process(target=trainer.train_model)
-            trainers[serviceId]["thread"] = thread
-            thread.start()
-            return Response(status=200, response=dumps({"message":f"Training started for {serviceId}"}))
+        return Response(status=200, response=dumps({"message":f"Training finished for {serviceId}"}))
 
 

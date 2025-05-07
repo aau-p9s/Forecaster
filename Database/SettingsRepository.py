@@ -16,6 +16,3 @@ class SettingsRepository:
             return Setting(row[0], row[1], int(row[2]), int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]), loads(row[8]), loads(row[9]))
         raise DatabaseError
 
-    def set_settings(self, scaleup, scaledown, scaleperiod, id) -> None:
-        """Update settings for service."""
-        self.db.execute('UPDATE settings SET "Scaleup"=%s, "Scaledown"=%s, "Scaleperiod"=%s WHERE id=%s;', [scaleup, scaledown, scaleperiod, id])
