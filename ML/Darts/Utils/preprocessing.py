@@ -20,7 +20,7 @@ def build_scaler(scaler_type: ScalerType) -> Scaler:
         scaler = Scaler(StandardScaler())
     else:
         return None
-    scaler._fit_called = True  # trick if using saved params manually
+    scaler._fit_called = True
     return scaler
 
 def handle_missing_values(timeseries):
@@ -33,15 +33,15 @@ def denoiser(timeseries):
     kf.fit(timeseries)
     return kf.filter(timeseries)
 
-def scaler(timeseries: TimeSeries, scaler_type: Scaler) -> TimeSeries:
+def scaler(timeseries: TimeSeries, scaler_type: ScalerType) -> TimeSeries:
     transformer = build_scaler(scaler_type)
     scaled = transformer.fit_transform(timeseries)
     return scaled
 
-def run_transformer_pipeline(timeseries: TimeSeries):
+def run_transformer_pipeline(timeseries: TimeSeries, scaler_type: ScalerType) -> tuple[TimeSeries, float]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
-    timeseries = scaler(timeseries)
+    timeseries = scaler(timeseries, scaler_type)
     return (timeseries, missing_values_ratio)
 
 def load_data(data: str | list[float, int], granularity=None):
