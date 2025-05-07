@@ -1,6 +1,6 @@
 import pytest
 import darts.models as models
-from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
+from darts.models import RegressionEnsembleModel, NaiveEnsembleModel, NaiveSeasonal
 from darts.timeseries import TimeSeries
 import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
@@ -83,9 +83,8 @@ def test_naive_ensemble_model(ensemble_training_local):
 def test_forecaster(forecast_repository):
     data = AirPassengersDataset().load()
 
-    with open("./Assets/test_model.pth", "rb") as file:
-        modelObj = pickle.loads(file.read())
-    model = Model("model-id", modelObj, "service")
+    model_obj = NaiveSeasonal()
+    model = Model("model-id", model_obj, "service")
     models = [model]
     forecaster = Forecaster(models, model.serviceId, forecast_repository)
     
