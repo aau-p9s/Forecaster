@@ -1,13 +1,29 @@
 from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import matplotlib.pyplot as plt
 from darts import TimeSeries
 import pandas as pd
 import numpy as np
 from darts.utils.missing_values import fill_missing_values
 
+from enum import Enum
+
+class ScalerType(str, Enum):
+    MINMAX = "minmax"
+    STANDARD = "standard"
+    NONE = "none"
+
+def build_scaler(scaler_type: ScalerType) -> Scaler:
+    if scaler_type == ScalerType.MINMAX:
+        scaler = Scaler(MinMaxScaler(feature_range=(0, 1)))
+    elif scaler_type == ScalerType.STANDARD:
+        scaler = Scaler(StandardScaler())
+    else:
+        return None
+    scaler._fit_called = True
+    return scaler
 
 def handle_missing_values(timeseries):
     ratio = missing_values.missing_values_ratio(timeseries)
@@ -29,10 +45,8 @@ def denoiser(timeseries):
     kf.fit(timeseries)
     return kf.filter(timeseries)
 
-
-def scaler(timeseries: TimeSeries, scaler_instance: Scaler) -> TimeSeries:
-    scaler = scaler_instance()
-    transformer = Scaler(scaler)
+def scaler(timeseries: TimeSeries, scaler_type: ScalerType) -> TimeSeries:
+    transformer = build_scaler(scaler_type)
     scaled = transformer.fit_transform(timeseries)
     return scaled
 
@@ -50,7 +64,7 @@ def remove_outliers(series: TimeSeries, outlier_thresh):
 def run_transformer_pipeline(
     timeseries: TimeSeries,
     scale=True,
-    scaler_instance=MinMaxScaler,
+    scaler_type: ScalerType,
     resample="h",
     outlier_thresh=3000,
 ) -> tuple[TimeSeries, float]:

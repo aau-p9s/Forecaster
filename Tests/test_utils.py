@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from darts import TimeSeries
-from ML.Darts.Utils.preprocessing import load_data, run_transformer_pipeline  # Make sure to import the function correctly from your module
+from ML.Darts.Utils.preprocessing import ScalerType, load_data, run_transformer_pipeline  # Make sure to import the function correctly from your module
 import numpy as np
 import re
 
@@ -93,11 +93,11 @@ def test_load_data_with_infered_granularity_from_epoch(sample_data_epoch):
     # This checks if freq is inferred correctly
     assert ts.freq == granularity, f"Expected granularity {granularity}, but got {ts.freq}"
 
-def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_values):
+def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_values : TimeSeries):
 
     assert sample_timeseries_missing_values.to_dataframe().isna().any().any()
 
-    ts, ratio = run_transformer_pipeline(sample_timeseries_missing_values)
+    ts, ratio = run_transformer_pipeline(sample_timeseries_missing_values, scaler_type=ScalerType.MINMAX)
 
     assert not ts.to_dataframe().isna().any().any()
     assert isinstance(ratio, float)

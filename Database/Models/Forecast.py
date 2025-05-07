@@ -1,6 +1,6 @@
 from typing import Any
 from darts import TimeSeries
-
+from darts.dataprocessing.transformers import Scaler
 
 class Forecast:
     def __init__(self, modelId, forecast: TimeSeries, error:Any=float('inf')):
@@ -10,3 +10,6 @@ class Forecast:
 
     def serialize(self) -> str:
         return self.forecast.to_json()
+    
+    def inverse_scale(self, scaler : Scaler) -> TimeSeries:
+        return scaler.inverse_transform(self.forecast)
