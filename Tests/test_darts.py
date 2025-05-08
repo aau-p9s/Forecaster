@@ -8,6 +8,7 @@ from darts.datasets import AirPassengersDataset
 from ML.Forecaster import Forecaster, Forecast
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
+from Database.ModelRepository import ModelRepository
 from Database.Models.Model import Model
 import pickle
 
@@ -20,6 +21,11 @@ def mock_db():
 def forecast_repository(mock_db):
     """Creates a ForecastRepository instance with a mocked DB connection."""
     return ForecastRepository(mock_db)
+
+@pytest.fixture
+def model_repository(mock_db):
+    """Creates a ModelRepository instance with a mocked DB connection."""
+    return ModelRepository(mock_db)
 
 
 @pytest.fixture
@@ -54,7 +60,8 @@ def pre_trained_global_models(sample_time_series):
 @pytest.fixture
 def ensemble_training_local(pre_trained_local_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTrainer(pre_trained_local_models, sample_time_series, forecast_period=12)
+    train_series, val_series = sample_time_series.split_after(0.75)
+    return EnsembleTrainer(pre_trained_local_models, train_series, val_series, forecast_period=12)
 
 @pytest.fixture
 def ensemble_training_global(pre_trained_global_models, sample_time_series):
@@ -80,14 +87,14 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository):
+def test_forecaster(forecast_repository, model_repository):
     data = AirPassengersDataset().load()
 
     model_obj = NaiveSeasonal()
     model_obj.fit(data[-10:])
     model = Model("model-id", model_obj, "service")
     models = [model]
-    forecaster = Forecaster(models, model.serviceId, forecast_repository)
+    forecaster = Forecaster(models, model.serviceId, forecast_repository, model_repository)
     
     forecast = forecaster.create_forecasts(13, data)
     
