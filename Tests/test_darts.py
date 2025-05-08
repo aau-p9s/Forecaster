@@ -20,6 +20,7 @@ def mock_db():
 @pytest.fixture
 def forecast_repository(mock_db):
     """Creates a ForecastRepository instance with a mocked DB connection."""
+    mock_db.insert_forecast.return_value = None
     return ForecastRepository(mock_db)
 
 @pytest.fixture
