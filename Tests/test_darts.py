@@ -66,7 +66,8 @@ def ensemble_training_local(pre_trained_local_models, sample_time_series):
 @pytest.fixture
 def ensemble_training_global(pre_trained_global_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTrainer(pre_trained_global_models, sample_time_series, forecast_period=12)
+    train_series, val_series = sample_time_series.split_after(0.75)
+    return EnsembleTrainer(pre_trained_global_models, train_series, val_series, forecast_period=12)
 
 
 def test_learned_ensemble_model(ensemble_training_global):
