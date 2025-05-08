@@ -20,6 +20,14 @@ class ModelRepository:
             modelObj = pickle.loads(row[2])
             return Model(row[0], row[1], modelObj)
         raise psycopg2.DatabaseError
+    
+    def get_by_modelid_and_service(self, modelId, serviceId) -> Model:
+        rows = self.db.execute_get('SELECT id, name, bin, scaler FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelId, serviceId])
+        if len(rows) > 0:
+            row = rows[0]
+            modelObj = pickle.loads(row[2])
+            return Model(row[0], row[1], modelObj)
+        raise psycopg2.DatabaseError
 
     def get_all_models(self) -> list[Model]:
         return [row[0] for row in self.db.execute_get('SELECT id from models')]

@@ -1,5 +1,6 @@
 from darts import TimeSeries
 from Database.ForecastRepository import ForecastRepository
+from Database.ModelRepository import ModelRepository
 from darts.metrics import rmse
 from Database.Models.Forecast import Forecast
 from Database.Models.Model import Model
@@ -7,13 +8,14 @@ from Database.Models.Model import Model
 class Forecaster: # Each service has one of these to create / keep track of forecasts
     forecasts:list[Forecast] = []
     
-    def __init__(self, models: list[Model], serviceId, repository:ForecastRepository):
+    def __init__(self, models: list[Model], serviceId, repository:ForecastRepository, model_repository:ModelRepository):
         self.models:list[Model] = models
         self.serviceId = serviceId
         self.repository = repository
+        self.model_repository = model_repository
     
-    def create_forecasts(self, forecastHorizon, historicalData=None) -> Forecast:
-        """Creates a forecast for with each supplied model and calculates its error by backtesting
+    def create_forecasts(self, forecastHorizon, historicalData=None):
+        """Creates a forecast for each supplied model and calculates its error by backtesting
         Args:
           historicalData (TimeSeries): Used to backtest and supply timestamp where to predict from
         Returns:
@@ -25,14 +27,17 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             # TODO: use real data
             if historicalData is None:
                 historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
-            forecast_error = rmse(historicalData, forecast)
+            forecast_error = rmse(historicalData, forecast, intersect=True)
             self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
 
-        forecast = self.find_best_forecast()
-        print(f"{forecast.modelId=}")
-        print(f"{forecast.error=}")
-        self.repository.insert_forecast(forecast, self.serviceId)
-        return forecast
+
+            Forecast(model.modelId, forecast, forecast_error)
+            self.repository.insert_forecast(forecast, self.serviceId)
+            print("Forecast inserted in db")
+        best_forecast = self.find_best_forecast()
+        print(f"Best forecast: {best_forecast.modelId} with error {best_forecast.error}")
+        best_forecast_model = self.model_repository.get_by_modelid_and_service(best_forecast.modelId, self.serviceId)
+        return best_forecast.inverse_scale(best_forecast_model.scaler)
 
     def find_best_forecast(self): # forecast ranker
         """Finds the forecast with the lowest error and assumes that it is the best"""
