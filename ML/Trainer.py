@@ -29,6 +29,7 @@ class Trainer:
     def train_model(self):
         for model in self.models:
             try:
+              
                 # 1. Preprocess
                 self.series = load_json_data(self.data)
                 preprocessed_series = run_transformer_pipeline(self.series, model.scaler)
