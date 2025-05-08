@@ -26,6 +26,7 @@ def forecast_repository(mock_db):
 @pytest.fixture
 def model_repository(mock_db):
     """Creates a ModelRepository instance with a mocked DB connection."""
+    mock_db.get_by_modelid_and_service.return_value = None
     return ModelRepository(mock_db)
 
 
