@@ -89,7 +89,7 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository, model_repository):
+def test_forecaster(mock_db, forecast_repository, model_repository):
     data = AirPassengersDataset().load()
 
     model_obj = NaiveSeasonal()
@@ -99,7 +99,8 @@ def test_forecaster(forecast_repository, model_repository):
     forecaster = Forecaster(models, model.serviceId, forecast_repository, model_repository)
     
     forecast = forecaster.create_forecasts(13, data)
-    
+
+    mock_db.insert_forecast.assert_called_once()
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
     assert forecast.forecast.n_timesteps == 13
