@@ -28,10 +28,9 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             if historicalData is None:
                 historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
             forecast_error = rmse(historicalData, forecast, intersect=True)
-            self.forecasts.append(Forecast(model.modelId, forecast, forecast_error))
+            forecast = Forecast(model.modelId, forecast, forecast_error)
+            self.forecasts.append(forecast)
 
-
-            Forecast(model.modelId, forecast, forecast_error)
             self.repository.insert_forecast(forecast, self.serviceId) #Maybe shouldn't insert all forecasts, but only the best one
             print("Forecast inserted in db")
         best_forecast = self.find_best_forecast()
