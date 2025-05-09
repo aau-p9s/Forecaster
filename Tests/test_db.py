@@ -22,14 +22,14 @@ def test_get_all_models_by_service(mock_db):
     model_obj = NaiveSeasonal()
     model = Model("model-id", model_obj, "service")
     mock_db.execute_get.return_value = [
-        ("model-id", type(model_obj).__name__, model.get_binary(), "minmax", model.serviceId)
+        ("model-id", type(model_obj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
     result = model_repo.get_all_models_by_service("service")
 
     mock_db.execute_get.assert_called_once_with(
-        'SELECT id, name, bin, scaler from models WHERE "serviceid" = %s;', [model.serviceId]
+        'SELECT id, name, bin from models WHERE "serviceid" = %s;', [model.serviceId]
     )
     assert result[0].get_binary() == model.get_binary() # Ensure the model is equal in the database
 
