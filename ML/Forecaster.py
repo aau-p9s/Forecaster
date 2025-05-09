@@ -25,16 +25,19 @@ class Forecaster: # Each service has one of these to create / keep track of fore
         """
         for model in self.models:
             # Use predict from Darts and backtest to calculate errors for models on historical data here
-            forecast = model.model.predict(forecastHorizon)
-            # TODO: use real data
-            if historicalData is None:
-                historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
-            forecast_error = rmse(historicalData, forecast, intersect=True)
-            forecast = Forecast(model.modelId, forecast, forecast_error)
-            self.forecasts.append(forecast)
+            try:
+                forecast = model.model.predict(forecastHorizon)
+                # TODO: use real data
+                if historicalData is None:
+                    historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
+                forecast_error = rmse(historicalData, forecast, intersect=True)
+                forecast = Forecast(model.modelId, forecast, forecast_error)
+                self.forecasts.append(forecast)
 
-            self.repository.insert_forecast(forecast, self.serviceId) #Maybe shouldn't insert all forecasts, but only the best one
-            print("Forecast inserted in db")
+                self.repository.insert_forecast(forecast, self.serviceId) #Maybe shouldn't insert all forecasts, but only the best one
+                print("Forecast inserted in db")
+            except Exception as e:
+                print(f"Error creating forecast for {model.__class__.__name__}: {str(e)}")
         best_forecast = self.find_best_forecast()
         print(f"Best forecast: {best_forecast.modelId} with error {best_forecast.error}")
         best_forecast_model = self.model_repository.get_by_modelid_and_service(best_forecast.modelId, self.serviceId)
@@ -48,4 +51,6 @@ class Forecaster: # Each service has one of these to create / keep track of fore
 
     def find_best_forecast(self): # forecast ranker
         """Finds the forecast with the lowest error and assumes that it is the best"""
+        if not self.forecasts:
+            raise ValueError("No forecasts available to find the best one.")
         return min(self.forecasts, key=lambda x: x.error)
