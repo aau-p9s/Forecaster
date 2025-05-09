@@ -8,7 +8,7 @@ class HistoricalRepository:
         self.db = db
 
     def get_by_service(self, service_id:str) -> list[Historical]:
-        rows = self.db.execute_get("SELECT id, serviceid, createdat, historicaldata FROM historicaldata WHERE serviceid = %s", [
+        rows = self.db.execute_get("SELECT id, serviceid, createdat, historicdata FROM historicdata WHERE serviceid = %s", [
             service_id
         ])
         return [Historical(row[0], row[1], row[2], row[3]) for row in rows]
