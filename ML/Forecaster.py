@@ -39,6 +39,9 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             except Exception as e:
                 print(f"Error creating forecast for {model.__class__.__name__}: {str(e)}")
         best_forecast = self.find_best_forecast()
+        if not best_forecast:
+            raise ValueError("No forecasts available to find the best one.")
+        
         print(f"Best forecast: {best_forecast.modelId} with error {best_forecast.error}")
         best_forecast_model = self.model_repository.get_by_modelid_and_service(best_forecast.modelId, self.serviceId)
         
