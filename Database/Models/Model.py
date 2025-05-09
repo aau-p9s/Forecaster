@@ -1,11 +1,12 @@
 import datetime
 import tempfile
-from ML.Darts.Utils.preprocessing import ScalerType
+from darts.dataprocessing.transformers import Scaler
+from sklearn.preprocessing import MinMaxScaler
 
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
 class Model:
-    def __init__(self, modelId:str, model:ForecastingModel, serviceId, scaler=ScalerType.MINMAX):
+    def __init__(self, modelId:str, model:ForecastingModel, serviceId, scaler=Scaler(MinMaxScaler(feature_range=(0, 1)))):
         self.modelId = modelId
         self.model = model
         self.trainedTime = datetime.date.today()

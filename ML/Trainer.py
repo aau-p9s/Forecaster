@@ -32,8 +32,9 @@ class Trainer:
               
                 # 1. Preprocess
                 self.series = load_json_data(self.data)
-                preprocessed_series = run_transformer_pipeline(self.series, model.scaler)
+                preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(self.series)
                 self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val)
+                model.scaler = scaler
 
                 # 1. Train model using Darts
                 print(f"Training {model.__class__.__name__} for {self.serviceId}")
@@ -63,22 +64,20 @@ class Trainer:
 
     def train_ensemble(self, ensemble_candidates):
         self.series = load_json_data(self.data)
-        preprocessed_series = run_transformer_pipeline(self.series)
+        preprocessed_series, missing_values_ratio, scaler = run_transformer_pipeline(self.series)
         self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val)
         
         trainer = EnsembleTrainer(ensemble_candidates, self.train_series, self.val_series, self.forecast_period, split_train_val=self.split_train_val)
         print("Training learned ensemble model")
         learned = trainer.create_learned_ensemble_model()
-        learned_id = uuid.uuid4()
-        model = Model(learned_id, learned[2], self.serviceId, self.models[0].scaler)
+        model = Model("", learned[2], self.serviceId, scaler)
         self.repository.insert_model(model)
-        forecast = Forecast(learned_id, learned[1], learned[0])
+        forecast = Forecast(model.modelId, learned[1], learned[0])
         self.forecast_repository.insert_forecast(forecast, self.serviceId)
         print("Training naive ensemble model")
         naive = trainer.create_naive_ensemble_model()
-        naive_id = uuid.uuid4()
-        model = Model(naive_id, naive[2], self.serviceId, self.models[0].scaler)
+        model = Model("", naive[2], self.serviceId, scaler)
         self.repository.insert_model(model)
-        forecast = Forecast(naive_id, naive[1], naive[0])
+        forecast = Forecast(model.modelId, naive[1], naive[0])
         self.forecast_repository.insert_forecast(forecast, self.serviceId)
         return f"Ensemble models trained and inserted in db"

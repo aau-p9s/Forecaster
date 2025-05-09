@@ -4,6 +4,8 @@ from Database.ModelRepository import ModelRepository
 from darts.metrics import rmse
 from Database.Models.Forecast import Forecast
 from Database.Models.Model import Model
+from sklearn.preprocessing import MinMaxScaler
+from ML.Darts.Utils.preprocessing import Scaler
 
 class Forecaster: # Each service has one of these to create / keep track of forecasts
     forecasts:list[Forecast] = []
@@ -36,7 +38,12 @@ class Forecaster: # Each service has one of these to create / keep track of fore
         best_forecast = self.find_best_forecast()
         print(f"Best forecast: {best_forecast.modelId} with error {best_forecast.error}")
         best_forecast_model = self.model_repository.get_by_modelid_and_service(best_forecast.modelId, self.serviceId)
-        best_forecast = Forecast(best_forecast_model.modelId, best_forecast.inverse_scale(best_forecast_model.scaler), best_forecast.error)
+        
+        scaler = Scaler(MinMaxScaler(feature_range=(0, 1)))
+        scaler.fit(historicalData)
+
+        best_forecast.inverse_scale(scaler)
+        best_forecast = Forecast(best_forecast_model.modelId, forecast = best_forecast, error=best_forecast.error)
         return best_forecast
 
     def find_best_forecast(self): # forecast ranker
