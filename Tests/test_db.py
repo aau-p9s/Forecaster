@@ -1,4 +1,3 @@
-from pickle import loads
 from darts.datasets import AirPassengersDataset
 from darts.models import NaiveSeasonal
 import pytest

@@ -1,5 +1,5 @@
 from time import time
-import pickle
+import cloudpickle as pickle
 from Database.dbhandler import DbConnection
 import psycopg2
 from Database.Utils import gen_uuid

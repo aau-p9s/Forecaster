@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.Models.Model import Model
-import pickle
+import cloudpickle as pickle
 from ML.Darts.Utils.preprocessing import run_transformer_pipeline
 from datetime import datetime
 import pandas as pd
