@@ -13,7 +13,7 @@ class Predict(Resource):
         # Create new forecast on a new thread and copy to DB
         models = model_repository.get_all_models_by_service(serviceId)
         if not serviceId in forecasters:
-            forecaster = Forecaster(models, serviceId, forecast_repository)
+            forecaster = Forecaster(models, serviceId, forecast_repository, model_repository)
             # TODO: use horizon from settings
             settings = settings_repository.get_settings(serviceId)
             historical = historical_repository.get_by_service(serviceId)
