@@ -26,7 +26,7 @@ def forecast_repository(mock_db):
 @pytest.fixture
 def model_repository(mock_db):
     """Creates a ModelRepository instance with a mocked DB connection."""
-    mock_db.get_by_modelid_and_service.return_value = None
+    mock_db.execute_get.return_value = []
     return ModelRepository(mock_db)
 
 
@@ -97,11 +97,12 @@ def test_forecaster(mock_db, forecast_repository, model_repository):
     model_obj.fit(data[-10:])
     model = Model("model-id", model_obj, "service")
     models = [model]
+    
     forecaster = Forecaster(models, model.serviceId, forecast_repository, model_repository)
     
     forecast = forecaster.create_forecasts(13, data)
 
-    mock_db.insert_forecast.assert_called_once()
+    mock_db.insert_forecast.assert_called_once_with(forecast, service_id)
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
     assert forecast.forecast.n_timesteps == 13
