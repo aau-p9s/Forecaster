@@ -13,7 +13,7 @@ class Tune(Resource):
     @api.expect(tuning_model)
     def get(self, serviceId, modelName):
         data = request.get_json()
-        tuningData = data["tuningData"]
+        tuningData = data["tuning_data"]
         forecast_horizon = data["horizon"]
 
         t = Tuner(serviceId, tuningData, forecast_horizon)
@@ -27,7 +27,7 @@ class TuneAll(Resource):
     @api.expect(tuning_model)
     def post(self, serviceId):
         data = request.get_json()
-        tuningData = data["tuningData"]
+        tuningData = data["tuning_data"]
         forecast_horizon = data["horizon"]
 
         t = Tuner(serviceId, tuningData, forecast_horizon)

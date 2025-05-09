@@ -10,7 +10,7 @@ class ModelRepository:
         self.db = db
 
     def get_all_models_by_service(self, serviceId) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin, scaler from models WHERE "serviceid" = %s;', [serviceId])
+        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [serviceId])
         return [Model(row[0], pickle.loads(row[2]), serviceId) for row in rows]
 
     def get_by_modelname_and_service(self, modelname, serviceId) -> Model:
@@ -22,7 +22,7 @@ class ModelRepository:
         raise psycopg2.DatabaseError
     
     def get_by_modelid_and_service(self, modelId, serviceId) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin, scaler FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelId, serviceId])
+        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelId, serviceId])
         if len(rows) > 0:
             row = rows[0]
             modelObj = pickle.loads(row[2])
