@@ -10,21 +10,6 @@ from darts.utils.missing_values import fill_missing_values
 
 from enum import Enum
 
-class ScalerType(str, Enum):
-    MINMAX = "minmax"
-    STANDARD = "standard"
-    NONE = "none"
-
-def build_scaler(scaler_type: ScalerType) -> Scaler:
-    if scaler_type == ScalerType.MINMAX:
-        scaler = Scaler(MinMaxScaler(feature_range=(0, 1)))
-    elif scaler_type == ScalerType.STANDARD:
-        scaler = Scaler(StandardScaler())
-    else:
-        return None
-    scaler._fit_called = True
-    return scaler
-
 def handle_missing_values(timeseries):
     ratio = missing_values.missing_values_ratio(timeseries)
     filled_series = missing_values.fill_missing_values(timeseries)
@@ -45,11 +30,10 @@ def denoiser(timeseries):
     kf.fit(timeseries)
     return kf.filter(timeseries)
 
-def scaler(timeseries: TimeSeries, scaler_type: ScalerType) -> TimeSeries:
-    transformer = build_scaler(scaler_type)
+def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
+    transformer = Scaler(MinMaxScaler(feature_range=(0, 1)))
     scaled = transformer.fit_transform(timeseries)
-    return scaled
-
+    return (scaled, transformer)
 
 def remove_outliers(series: TimeSeries, outlier_thresh):
     threshold = outlier_thresh
@@ -63,11 +47,9 @@ def remove_outliers(series: TimeSeries, outlier_thresh):
 
 def run_transformer_pipeline(
     timeseries: TimeSeries,
-    scale=True,
-    scaler_type: ScalerType = ScalerType.NONE,
     resample="h",
     outlier_thresh=3000,
-) -> tuple[TimeSeries, float]:
+) -> tuple[TimeSeries, float, Scaler]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
     if resample is not None:
         timeseries.resample(resample)
@@ -75,13 +57,11 @@ def run_transformer_pipeline(
     timeseries = remove_outliers(timeseries, outlier_thresh)
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
     print("Removed missing values")
-    print(timeseries.head())
-    if scale and ScalerType is not None:
-        print(f"Scaling using {scaler_type}")
-        timeseries = scaler(timeseries=timeseries, scaler_type=scaler_type)
-    else:
-        print("Did not scale data")
-    return (timeseries, missing_values_ratio)
+
+    print(f"Scaling data")
+    timeseries, transformer = scaler(timeseries)
+
+    return (timeseries, missing_values_ratio, transformer)
 
 
 def load_data(data: str | list[float, int], granularity=None):

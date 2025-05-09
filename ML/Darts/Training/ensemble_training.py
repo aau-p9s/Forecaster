@@ -11,9 +11,10 @@ import inspect
 # An ensemble model should be created using the best models found in the tuning process to check if the ensemble model can improve the forecast
 class EnsembleTrainer:
 
-    def __init__(self, candidate_models: list[ForecastingModel], series, forecast_period, split_train_val=0.75):
+    def __init__(self, candidate_models: list[ForecastingModel], train_series, val_series, forecast_period, split_train_val=0.75):
         self.candidate_models = candidate_models
-        self.series, self.validation_series = series.split_after(split_train_val)
+        self.train_series = train_series
+        self.val_series = val_series 
         self.forecast_period = forecast_period
         
         
@@ -36,11 +37,11 @@ class EnsembleTrainer:
             train_forecasting_models=False
         )
 
-        ensemble_model.fit(self.series)
+        ensemble_model.fit(self.train_series)
 
         #forecast = ensemble_model.backtest(self.series, forecast_horizon=self.forecast_period)
         forecast = ensemble_model.predict(self.forecast_period)
-        rmse_error = rmse(self.validation_series, forecast)
+        rmse_error = rmse(self.val_series, forecast)
 
         return (rmse_error, forecast, ensemble_model) # Should save the backtest (forecast) to the database along with the model and the error
 
@@ -59,7 +60,7 @@ class EnsembleTrainer:
                 forecasting_models=untrained_models,
                 train_forecasting_models=True
             )
-            ensemble_model.fit(self.series)
+            ensemble_model.fit(self.train_series)
 
         elif all(isinstance(model, GlobalForecastingModel) for model in self.candidate_models) and all_models_equally_fit:
             ensemble_model = NaiveEnsembleModel(
@@ -72,6 +73,6 @@ class EnsembleTrainer:
         #forecast = ensemble_model.backtest(self.series, forecast_horizon=self.forecast_period)
         forecast = ensemble_model.predict(self.forecast_period)
 
-        rmse_error = rmse(self.validation_series, forecast)
+        rmse_error = rmse(self.val_series, forecast)
         
         return (rmse_error, forecast, ensemble_model) # Should save the backtest (forecast) to the database along with the model and the error

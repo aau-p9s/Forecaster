@@ -11,5 +11,8 @@ class Forecast:
     def serialize(self) -> str:
         return self.forecast.to_json()
     
-    def inverse_scale(self, scaler : Scaler) -> TimeSeries:
-        return scaler.inverse_transform(self.forecast)
+    def inverse_scale(self, scaler : Scaler):
+        if scaler is not None:
+            self.forecast = scaler.inverse_transform(self.forecast)
+        else:
+            raise ValueError("Scaler is None, cannot inverse scale the forecast.")
