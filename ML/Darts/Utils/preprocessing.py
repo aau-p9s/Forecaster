@@ -1,3 +1,4 @@
+import json
 from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
@@ -36,6 +37,8 @@ def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
     return (scaled, transformer)
 
 def remove_outliers(series: TimeSeries, outlier_thresh):
+    if series is None:
+        raise ValueError("TimeSeries is None.")
     threshold = outlier_thresh
     values = series.values().squeeze()
     cleaned_values = np.where(values > threshold, np.nan, values)
@@ -51,6 +54,8 @@ def run_transformer_pipeline(
     outlier_thresh=3000,
 ) -> tuple[TimeSeries, float, Scaler]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
     if resample is not None:
         timeseries.resample(resample)
     timeseries = handle_negative_values(timeseries)
@@ -92,4 +97,11 @@ def load_data(data: str | list[float, int], granularity=None):
 
 
 def load_json_data(json_data):
-    return TimeSeries.from_json(json_data)
+    df = pd.DataFrame(json_data)
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+    series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', freq='h')
+
+    if series is None:
+        raise ValueError("TimeSeries did not load properly.")
+    
+    return series

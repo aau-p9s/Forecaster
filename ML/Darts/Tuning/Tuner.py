@@ -2,6 +2,9 @@ from joblib import logger
 import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
+
+from Database.ModelRepository import ModelRepository
+from Database.Utils import gen_uuid
 from .hyperparameters import HyperParameterConfig, encode_time, ENCODERS
 from .hyperparameters import ENCODERS, encode_time
 import torch.nn as nn
@@ -61,16 +64,17 @@ class Tuner:
     def __init__(
         self,
         serviceId,
+        model_repository:ModelRepository,
         data: TimeSeries,
         forecast_period,
-        output,
+        output = "output",
         train_val_split=0.75,
         gpu=0,
         trials=75,
         exclude_models=[],
     ):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
         torch.set_float32_matmul_precision("medium")
         self.gpu = gpu
         self.output = output if output is not None else "output"
@@ -79,6 +83,7 @@ class Tuner:
         self.serviceId = serviceId
         print(f"Using {self.device} and {self.gpu}\n")
         self.exclude_models = exclude_models
+        self.model_repository = model_repository
         # Optuna vars
         self.logger = logging.getLogger()
         os.makedirs("logs", exist_ok=True)
@@ -95,22 +100,21 @@ class Tuner:
         optuna.logging.enable_propagation()
 
         # Load dataset
-        # self.series = load_data(data, "min")
         self.series = data
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
-        self.models = [
-            cls
-            for name, cls in vars(models).items()
-            if inspect.isclass(cls) and issubclass(cls, ForecastingModel)
-        ]
+        # self.models = [
+        #     cls
+        #     for name, cls in vars(models).items()
+        #     if inspect.isclass(cls) and issubclass(cls, ForecastingModel)
+        # ]
+        self.models = model_repository.get_all_models_by_service(serviceId)
         self.past_covariates = None
         self.future_covariates = None
         self.best_score = float("inf")
         self.best_model: ForecastingModel = None
 
     def __tune_model(self, model: ForecastingModel | Model | str):
-        print(f"Model type: {type(model.__class__)}")
         if isinstance(model, str):  # Used for testing
             print("Is string")
             self.model = next(
@@ -120,8 +124,8 @@ class Tuner:
             self.model_name = self.model.__class__.__name__
         elif isinstance(model, Model):
             print("Is Model")
-            self.model = model.forecastingModel
-            self.model_name = model.name
+            self.model = model.model
+            self.model_name = model.model.__class__.__name__
 
         else:
             print("Is ForecastingModel")
@@ -131,8 +135,8 @@ class Tuner:
         def objective(trial, model=self.model):
             try:
                 # Get the model parameters
-                model_class = model
-                model_params = model._get_default_model_params()
+                model_class = model.model.__class__
+                model_params = model.model._get_default_model_params()
                 # model._model_params
                 config = HyperParameterConfig(trial, model, series=self.train_series)
                 uses_covariates = False
@@ -356,7 +360,7 @@ class Tuner:
             )
             print(f"\nTuning {model} for service {self.serviceId}\n")
             try:
-                if model.__name__ is not None and model.__name__ in self.exclude_models:
+                if model.model.__class__.__name__ is not None and model.model.__class__.__name__ in self.exclude_models:
                     self.logger.info(f"EXCLUDING MODEL {model.__name__}")
                     print(f"EXCLUDING MODEL {model.__name__}")
                     continue
@@ -395,12 +399,15 @@ class Tuner:
                     json.dump(best_trial_data, f, indent=4)
                 print(f"Trial json saved to {model_folder} in best_trial.json")
                 print(f"Model and best trial data saved to {model_folder}")
-                studies_and_models.append((study, trained_model))
+                studies_and_models.append((best_trial_data, trained_model))
+                model.trainedTime = datetime.date.today()
+                model.model = trained_model
+                self.model_repository.insert_model(model)
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
         return studies_and_models
 
-    def tune_model_x(self, model: Model | str):
+    def tune_model_x(self, model: Model):
         trained_model: ForecastingModel = None
         try:
             self.best_model = None
@@ -408,10 +415,8 @@ class Tuner:
             print(
                 f"Best model and score reset to {self.best_model} and {self.best_score}"
             )
-            if isinstance(model, Model):
-                print(f"\nTuning {model.name} for service {self.serviceId}\n")
-            else:
-                print(f"\nTuning {model} for service {self.serviceId}\n")
+            print(f"\nTuning {model} for service {self.serviceId}\n")
+            
             study, trained_model = self.__tune_model(model)
             output = self.output
             if not os.path.exists(output):
@@ -447,6 +452,7 @@ class Tuner:
                 print(f"\nDone with: {model.name} for service {self.serviceId}\n")
             else:
                 print(f"\nDone with {model} for service {self.serviceId}\n")
-            return (study, trained_model)
+            model.model = trained_model
+            return (best_trial_data, model)
         except Exception as err:
             print(f"\nError: {err}, {type(err)}\n")

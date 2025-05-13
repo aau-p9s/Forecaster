@@ -27,7 +27,6 @@ class Forecaster: # Each service has one of these to create / keep track of fore
             # Use predict from Darts and backtest to calculate errors for models on historical data here
             try:
                 forecast = model.model.predict(forecastHorizon)
-                # TODO: use real data
                 if historicalData is None:
                     historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
                 forecast_error = rmse(historicalData, forecast, intersect=True)
@@ -38,6 +37,7 @@ class Forecaster: # Each service has one of these to create / keep track of fore
                 print("Forecast inserted in db")
             except Exception as e:
                 print(f"Error creating forecast for {model.__class__.__name__}: {str(e)}")
+                return f"Error creating forecast for {model.__class__.__name__}: {str(e)}"
         best_forecast = self.find_best_forecast()
         if not best_forecast:
             raise ValueError("No forecasts available to find the best one.")

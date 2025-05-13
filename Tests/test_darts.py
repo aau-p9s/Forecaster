@@ -116,12 +116,14 @@ def test_forecaster(forecast_repository, model_repository, sample_time_series):
     
     forecast = forecaster.create_forecasts(1, data_processed)
 
+    print(forecast.error)
+
     forecast_repository.insert_forecast.assert_called_once()
     
     assert forecast is not None
-    # assert isinstance(forecast.forecast, TimeSeries)
-    # assert forecast.forecast.n_timesteps == 13
-    # assert isinstance(forecast, Forecast)
+    assert isinstance(forecast.forecast, TimeSeries)
+    assert forecast.forecast.n_timesteps == 13
+    assert isinstance(forecast, Forecast)
 
     # dump = forecast.forecast.to_json()
     # with open("Tests\\forecast.json", "w") as file:
