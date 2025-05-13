@@ -25,6 +25,7 @@
             test-deploy = pkgs.callPackage ./nix-support/test-deploy.nix { inherit config; };
             start-database = pkgs.callPackage ./nix-support/start-database.nix { inherit config; };
             stop-database = pkgs.callPackage ./nix-support/stop-database.nix { inherit config; };
+            dump = pkgs.callPackage ./nix-support/dump.nix { inherit config; };
             show_config = pkgs.writeScriptBin "show-config" ''
                 #!${pkgs.bash}/bin/bash
                 set -e
