@@ -44,6 +44,7 @@ class Trainer:
                     model.model = model.model.fit(self.series)
                 except Exception as e:
                     print(f"Error training {model.modelId}: {str(e)}")
+                    #raise e
                     continue
                 print(f"{model.modelId} fitted for {self.serviceId}")
                 model.trainedTime = datetime.date.today()
@@ -66,6 +67,7 @@ class Trainer:
 
             except Exception as e:
                 print(f"Error training {model.modelId}: {str(e)}")
+                #raise e
 
     def train_ensemble(self, ensemble_candidates:list[ForecastingModel]):
         self.series = load_json_data(self.data)

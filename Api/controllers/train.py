@@ -2,15 +2,15 @@ from json import dumps, loads
 from multiprocessing import Process
 from flask import Response
 from flask_restx import Resource
+from datetime import datetime
 
 from ML.Trainer import Trainer
 from ..lib.variables import model_repository, api, trainers, forecast_repository, historical_repository
 
 def format_data(data):
-    json = loads(data)
     return {
-        "timestamp":[value[0] for value in json["result"]["values"]],
-        "value":[value[1] for value in json["result"]["values"]]
+        "timestamp":[datetime.fromtimestamp(value[0]) for value in data["data"]["result"][0]["values"]],
+        "value":[float(value[1]) for value in data["data"]["result"][0]["values"]]
     }
 
 @api.route("/train/<string:serviceId>/<forecastHorizon>")

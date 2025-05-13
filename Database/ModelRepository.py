@@ -12,7 +12,7 @@ class ModelRepository:
     def get_all_models_by_service(self, serviceId) -> list[Model]:
         rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [serviceId])
         if len(rows) == 0:
-            return "No models for this service"
+            raise psycopg2.DatabaseError
         return [Model(row[0], row[1], pickle.loads(row[2]), serviceId) for row in rows]
 
     def get_by_modelname_and_service(self, modelName, serviceId) -> Model:

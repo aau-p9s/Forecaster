@@ -3,10 +3,9 @@ import cloudpickle
 import psycopg2
 from uuid import uuid4
 from datetime import datetime
-import darts
 
 
-BASE_DIR = os.path.expanduser("C:/Users/jjtor/Desktop/Skole/10sem/models/cloudpickle")
+BASE_DIR = os.path.expanduser("./Assets/models")
 
 DB_CONFIG = {
     "dbname": "autoscaler",
@@ -52,7 +51,7 @@ def main():
                 model = cloudpickle.load(f)
                 print(f"Loaded model: {model_name}")
                 binary = cloudpickle.dumps(model)
-                for s in ["a7f33e71-8046-461e-8ba7-e2bf22feff7d", "9545f4d4-511e-47bc-a37a-dbaac4a14704", "1e1eb3fb-894b-4959-a338-c5d408063717"]:
+                for s in ["1a2b3c4d-1111-2222-3333-444455556666", "2b3c4d5e-1111-2222-3333-444455556666", "3c4d5e6f-1111-2222-3333-444455556666"]:
                     insert_model(conn, model_name, binary, s)
         except Exception as e:
             print(f"Failed to process {model_name}: {e}")

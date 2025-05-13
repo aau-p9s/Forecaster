@@ -12,14 +12,15 @@ class Predict(Resource):
     def get(self, serviceId, forecastHorizon=12):
         # Create new forecast on a new thread and copy to DB
         models = model_repository.get_all_models_by_service(serviceId)
+        historical = historical_repository.get_by_service(serviceId)
         if not serviceId in forecasters:
             forecaster = Forecaster(models, serviceId, forecast_repository, model_repository)
             # TODO: use horizon from settings
-            historical = historical_repository.get_by_service(serviceId)
             forecasters[serviceId] = {
                 "forecaster":forecaster,
                 "thread":Process(target=forecaster.create_forecasts, args=[forecastHorizon, historical])
             }
+
 
         forecaster:Forecaster = forecasters[serviceId]["forecaster"]
         thread:Process = forecasters[serviceId]["thread"]
