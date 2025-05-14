@@ -1,5 +1,6 @@
 from json import dumps, loads
 from multiprocessing import Process
+from uuid import UUID
 from flask import Response
 from flask_restx import Resource
 from datetime import datetime
@@ -13,9 +14,9 @@ trainers:dict[str, Trainer] = {}
 @api.route("/train/<string:service_id>/<int:forecast_horizon>")
 class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"Something ML died!!!!"})
-    def post(self, service_id, forecast_horizon=12):
+    def post(self, service_id:str, forecast_horizon=12):
         if not service_id in trainers:
-            trainers[service_id] = Trainer(service_id, model_repository, forecast_repository)
+            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository)
 
         historical:list[Historical] = historical_repository.get_by_service(service_id)
         if not historical:
