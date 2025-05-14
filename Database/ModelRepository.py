@@ -1,5 +1,6 @@
 from datetime import date, datetime
 from time import time
+from uuid import UUID
 import cloudpickle as pickle
 from Database.dbhandler import DbConnection
 import psycopg2
@@ -10,13 +11,13 @@ class ModelRepository:
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_all_models_by_service(self, serviceId) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [serviceId])
+    def get_all_models_by_service(self, serviceId:UUID) -> list[Model]:
+        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
         return [Model(row[0], row[1], pickle.loads(row[2]), serviceId) for row in rows]
 
-    def get_by_modelname_and_service(self, modelName, serviceId) -> Model:
+    def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
         rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, serviceId])
         if len(rows) > 0:
             row = rows[0]
@@ -24,7 +25,7 @@ class ModelRepository:
             return Model(row[0], row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
     
-    def get_by_modelid_and_service(self, modelId, serviceId) -> Model:
+    def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
         rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelId, serviceId])
         if len(rows) > 0:
             row = rows[0]
