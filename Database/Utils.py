@@ -1,3 +1,3 @@
 import uuid
-def gen_uuid():
-    return str(uuid.uuid4())
+def gen_uuid() -> uuid.UUID:
+    return uuid.uuid4()

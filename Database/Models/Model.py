@@ -1,12 +1,13 @@
 import datetime
 import tempfile
+from uuid import UUID
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler
 
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
 class Model:
-    def __init__(self, modelId:str, modelName, model:ForecastingModel, serviceId, scaler=Scaler(MinMaxScaler(feature_range=(0, 1)))):
+    def __init__(self, modelId:UUID, modelName, model:ForecastingModel, serviceId:UUID, scaler=Scaler(MinMaxScaler(feature_range=(0, 1)))):
         self.modelId = modelId
         self.model:ForecastingModel = model
         self.name = modelName if modelName is not None else model.__class__.__name__

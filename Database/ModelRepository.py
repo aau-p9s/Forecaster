@@ -15,31 +15,31 @@ class ModelRepository:
         rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
-        return [Model(row[0], row[1], pickle.loads(row[2]), serviceId) for row in rows]
+        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId) for row in rows]
 
     def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, serviceId])
+        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
             modelObj = pickle.loads(row[2])
-            return Model(row[0], row[1], modelObj, serviceId)
+            return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
     
     def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelId, serviceId])
+        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
             modelObj = pickle.loads(row[2])
-            return Model(row[0], row[1], modelObj, serviceId)
+            return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
 
-    def get_all_models(self) -> list[Model]:
-        return [row[0] for row in self.db.execute_get('SELECT id from models')]
+    def get_all_models(self) -> list[UUID]:
+        return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]
 
     def insert_model(self, model:Model) -> Model:
-        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin, serviceid', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, model.scaler])
+        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin, serviceid', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
         obj = pickle.loads(result[0][2])
-        return Model(result[0][0], result[0][1], obj, result[0][2])
+        return Model(UUID(result[0][0]), result[0][1], obj, UUID(result[0][2]))
 
     def upsert_model(self, model:Model) -> None:
         self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])
