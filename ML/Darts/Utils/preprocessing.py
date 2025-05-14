@@ -1,8 +1,11 @@
+from datetime import datetime
 import json
+from typing import final
 from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from Database.Models.Historical import Historical
 import matplotlib.pyplot as plt
 from darts import TimeSeries
 import pandas as pd
@@ -94,6 +97,18 @@ def load_data(data: str | list[float, int], granularity=None):
         df, time_col=df.columns[0], value_cols=df.columns[1:].tolist(), freq=granularity
     )
     return ts
+
+
+
+def load_historical_data(data:Historical) -> TimeSeries:
+    series = {
+        "timestamp": [datetime.fromtimestamp(value[0]) for value in data.data["data"]["result"][0]["values"]],
+        "value": [float(value[1]) for value in data.data["data"]["result"][0]["values"]]
+    }
+    df = pd.DataFrame(series)
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value')
+    return final_series
 
 
 def load_json_data(json_data):

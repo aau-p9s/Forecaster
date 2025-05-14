@@ -1,4 +1,3 @@
-from time import time
 import cloudpickle as pickle
 from Database.dbhandler import DbConnection
 import psycopg2
@@ -20,7 +19,7 @@ class ModelRepository:
         if len(rows) > 0:
             row = rows[0]
             modelObj = pickle.loads(row[2])
-            return Model(row[0], row[1], modelObj)
+            return Model(row[0], row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
     
     def get_by_modelid_and_service(self, modelId, serviceId) -> Model:
@@ -28,13 +27,13 @@ class ModelRepository:
         if len(rows) > 0:
             row = rows[0]
             modelObj = pickle.loads(row[2])
-            return Model(row[0], row[1], modelObj)
+            return Model(row[0], row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
 
     def get_all_models(self) -> list[Model]:
         return [row[0] for row in self.db.execute_get('SELECT id from models')]
 
     def insert_model(self, model:Model) -> Model:
-        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, model.scaler])
+        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin, serviceid', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, model.scaler])
         obj = pickle.loads(result[0][2])
-        return Model(result[0][0], obj, result[0][1])
+        return Model(result[0][0], result[0][1], obj, result[0][2])

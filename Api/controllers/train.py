@@ -4,8 +4,11 @@ from flask import Response
 from flask_restx import Resource
 from datetime import datetime
 
+from Database.Models.Historical import Historical
 from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, trainers, forecast_repository, historical_repository
+from ..lib.variables import model_repository, api, forecast_repository, historical_repository
+
+trainers:dict[str, Trainer] = {}
 
 def format_data(data):
     return {
@@ -13,33 +16,19 @@ def format_data(data):
         "value":[float(value[1]) for value in data["data"]["result"][0]["values"]]
     }
 
-@api.route("/train/<string:serviceId>/<forecastHorizon>")
+@api.route("/train/<string:service_id>/<forecast_horizon>")
 class Train(Resource):
     @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"Something ML died!!!!"})
-    def post(self, serviceId, forecastHorizon=12):
-        # Retrain models on new thread and predict + copy to DB
-        models = model_repository.get_all_models_by_service(serviceId)
-        if not serviceId in trainers:
-            historical = historical_repository.get_by_service(serviceId)
-            data = format_data(historical[0].data)
-            trainData = {"tuning_data": data}
-            trainer = Trainer(models, serviceId, trainData, forecastHorizon, model_repository, forecast_repository)
-            trainers[serviceId] = {
-                "trainer": trainer,
-                "thread": Process(target=trainer.train_model)
-            }
+    def post(self, service_id, forecast_horizon=12):
+        historical:list[Historical] = historical_repository.get_by_service(service_id)
+        if not historical:
+            return Response(status=400, response=dumps({"message":f"Error, historical table is empty for service: {service_id}"}))
 
-        thread:Process = trainers[serviceId]["thread"]
-        if thread.is_alive():
-            thread.join()
-            return Response(status=202, response=dumps({"message":f"Training was already in progress for {serviceId}"}))
+        if not service_id in trainers:
+            trainers[service_id] = Trainer(service_id, model_repository, forecast_repository)
 
-        trainer:Trainer = trainers[serviceId]["trainer"]
-        thread = Process(target=trainer.train_model)
-        trainers[serviceId]["thread"] = thread
-        thread.start()
-        thread.join()
+        trainers[service_id].train(historical, forecast_horizon)
 
-        return Response(status=200, response=dumps({"message":f"Training started for {serviceId}"}))
+        return Response(status=200, response=dumps({"message":f"Training started for {service_id}"}))
 
 
