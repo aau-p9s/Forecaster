@@ -18,20 +18,23 @@ class Forecaster:
         self.model_repository = model_repository
         self.forecast_repository = forecast_repository
 
-    def predict(self, series:Historical, horizon:int):
+    def predict(self, series:Historical | None, horizon:int):
         self._process = Process(target=self._predict, args=[series, horizon])
         self._process.start()
 
-    def _predict(self, series:Historical, horizon:int):
-        historical_data = load_historical_data(series)
+    def _predict(self, series:Historical | None, horizon:int):
         models = self.model_repository.get_all_models_by_service(self.id)
         forecasts:list[Forecast] = []
 
-        for model in models:
+        for i, model in enumerate(models):
             forecast = model.model.predict(horizon)
             print("Created forecast")
-            forecast_rmse = rmse(historical_data, forecast)
-            print("Calculated RMSE")
+            if series:
+                historical_data = load_historical_data(series)
+                forecast_rmse = rmse(historical_data, forecast)
+                print("Calculated RMSE")
+            else:
+                forecast_rmse = i
             forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
 
         forecast = list(filter(lambda forecast: forecast.error == min(forecast.error for forecast in forecasts), forecasts))[0]

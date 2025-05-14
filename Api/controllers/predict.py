@@ -15,14 +15,14 @@ forecasters:dict[str, Forecaster] = {}
 class Predict(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 500: "something died..."})
     def get(self, service_id, forecast_horizon=12):
-        historical:list[Historical] = historical_repository.get_by_service(service_id)
+        historical:list[Historical] | None = historical_repository.get_by_service(service_id)
         if not historical:
-            return Response(status=400, response=dumps({"message":f"Error, historical table is empty for service: {service_id}"}))
+            print("!!! WARNING !!! No data in historical table, this should not happen")
 
         if not service_id in forecasters:
             forecasters[service_id] = Forecaster(service_id, model_repository, forecast_repository)
 
-        forecasters[service_id].predict(historical[0], forecast_horizon)
+        forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
 
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
