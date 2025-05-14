@@ -97,7 +97,7 @@ def load_data(data: str | list[float, int], granularity=None):
 
 
 def load_json_data(json_data):
-    tuning_data = json_data["tuning_data"][0]
+    tuning_data = json_data["tuning_data"]
     df = pd.DataFrame(tuning_data)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
     series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value')

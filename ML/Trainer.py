@@ -12,6 +12,7 @@ from ML.Darts.Utils.preprocessing import run_transformer_pipeline, load_data, lo
 from darts.metrics import rmse, mae, smape
 import datetime
 import uuid
+import traceback
 
 class Trainer:
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -35,7 +36,7 @@ class Trainer:
                 # 1. Preprocess
                 self.series = load_json_data(self.data)
                 preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(self.series)
-                self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val)
+                self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val) # I think the error might be here...
                 model.scaler = scaler
 
                 # 1. Train model using Darts
@@ -44,20 +45,22 @@ class Trainer:
                     model.model = model.model.fit(self.series)
                 except Exception as e:
                     print(f"Error training {model.modelId}: {str(e)}")
-                    #raise e
+                    traceback.format_exc()
+                    raise e
                     continue
                 print(f"{model.modelId} fitted for {self.serviceId}")
                 model.trainedTime = datetime.date.today()
                 print(f"Predicting {model.modelId} for {self.serviceId}")
-                forecast = model.model.predict(self.forecast_period)
+                forecast = model.model.predict(int(self.forecast_period))
                 val_target = self.val_series[
                     : len(forecast)
                 ]
                 print(f"{model.modelId} predicted for {self.serviceId}")
-                rmse_value = rmse(val_target, forecast)
-                print(f"RMSE for {model.modelId}: {rmse_value}")
+                print(f"{len(val_target)=}")
+                #rmse_value = rmse(val_target, forecast)
+                #print(f"RMSE for {model.modelId}: {rmse_value}")
 
-                forecast = Forecast(model.modelId, forecast, rmse_value)
+                forecast = Forecast(model.modelId, forecast, 0.0)
                 self.forecast_repository.insert_forecast(forecast, self.serviceId)
                 print("Forecast inserted in db")
 
@@ -67,7 +70,8 @@ class Trainer:
 
             except Exception as e:
                 print(f"Error training {model.modelId}: {str(e)}")
-                #raise e
+                traceback.format_exc()
+                raise e
 
     def train_ensemble(self, ensemble_candidates:list[ForecastingModel]):
         self.series = load_json_data(self.data)

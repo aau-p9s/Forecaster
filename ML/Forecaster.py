@@ -1,3 +1,4 @@
+import traceback
 from darts import TimeSeries
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
@@ -26,7 +27,7 @@ class Forecaster: # Each service has one of these to create / keep track of fore
         for model in self.models:
             # Use predict from Darts and backtest to calculate errors for models on historical data here
             try:
-                forecast = model.model.predict(forecastHorizon)
+                forecast = model.model.predict(int(forecastHorizon))
                 if historicalData is None:
                     historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
                 forecast_error = rmse(historicalData, forecast, intersect=True)
@@ -37,6 +38,8 @@ class Forecaster: # Each service has one of these to create / keep track of fore
                 print("Forecast inserted in db")
             except Exception as e:
                 print(f"Error creating forecast for {model.__class__.__name__}: {str(e)}")
+                raise e
+                traceback.format_exc()
                 return f"Error creating forecast for {model.__class__.__name__}: {str(e)}"
         best_forecast = self.find_best_forecast()
         if not best_forecast:

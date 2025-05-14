@@ -21,7 +21,7 @@ class Train(Resource):
         models = model_repository.get_all_models_by_service(serviceId)
         if not serviceId in trainers:
             historical = historical_repository.get_by_service(serviceId)
-            data = [format_data(obj.data) for obj in historical]
+            data = format_data(historical[0].data)
             trainData = {"tuning_data": data}
             trainer = Trainer(models, serviceId, trainData, forecastHorizon, model_repository, forecast_repository)
             trainers[serviceId] = {
