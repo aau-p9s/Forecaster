@@ -49,7 +49,6 @@ class Trainer:
                 model.trainedTime = datetime.date.today()
                 print(f"Predicting {model.modelId} for {self.serviceId}")
                 forecast = model.model.predict(self.forecast_period)
-                print(forecast.head())
                 val_target = self.val_series[
                     : len(forecast)
                 ]
