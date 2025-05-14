@@ -27,15 +27,18 @@ class Forecaster:
         forecasts:list[Forecast] = []
 
         for i, model in enumerate(models):
-            forecast = model.model.predict(horizon)
-            print("Created forecast")
-            if series:
-                historical_data = load_historical_data(series)
-                forecast_rmse = rmse(historical_data, forecast)
-                print("Calculated RMSE")
-            else:
-                forecast_rmse = i
-            forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
+            try:
+                forecast = model.model.predict(horizon)
+                print("Created forecast")
+                if series:
+                    historical_data = load_historical_data(series)
+                    forecast_rmse = rmse(historical_data, forecast)
+                    print("Calculated RMSE")
+                else:
+                    forecast_rmse = i
+                forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
+            except Exception as e:
+                print(f"Model failed, continuing no next model: {e}")
 
         forecast = list(filter(lambda forecast: forecast.error == min(forecast.error for forecast in forecasts), forecasts))[0]
         self.forecast_repository.insert_forecast(forecast, self.id)
