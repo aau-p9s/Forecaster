@@ -1,3 +1,5 @@
+from datetime import date, datetime
+from time import time
 import cloudpickle as pickle
 from Database.dbhandler import DbConnection
 import psycopg2
@@ -37,3 +39,6 @@ class ModelRepository:
         result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin, serviceid', [gen_uuid(), type(model.model).__name__, model.get_binary(), model.trainedTime, model.serviceId, model.scaler])
         obj = pickle.loads(result[0][2])
         return Model(result[0][0], result[0][1], obj, result[0][2])
+
+    def upsert_model(self, model:Model) -> None:
+        self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])

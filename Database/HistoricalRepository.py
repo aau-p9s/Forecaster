@@ -7,7 +7,7 @@ class HistoricalRepository:
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_by_service(self, service_id:str) -> list[Historical]:
+    def get_by_service(self, service_id) -> list[Historical]:
         rows = self.db.execute_get("SELECT id, serviceid, createdat, historicdata FROM historicdata WHERE serviceid = %s", [
             service_id
         ])

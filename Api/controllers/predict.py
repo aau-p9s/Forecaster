@@ -4,47 +4,29 @@ from flask import Response
 from flask_restx import Resource
 from datetime import datetime
 
+from Database.Models.Historical import Historical
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecasters, forecast_repository, historical_repository
+from ..lib.variables import api, model_repository, forecast_repository, historical_repository
 
-def format_data(data):
-    return {
-        "timestamp":[datetime.fromtimestamp(value[0]) for value in data["data"]["result"][0]["values"]],
-        "value":[float(value[1]) for value in data["data"]["result"][0]["values"]]
-    }
 
-@api.route("/predict/<string:serviceId>/<forecastHorizon>")
+forecasters:dict[str, Forecaster] = {}
+
+@api.route("/predict/<string:service_id>/<int:forecast_horizon>")
 class Predict(Resource):
-    @api.doc(params={"serviceId":"your-service-id"}, responses={200:"ok", 500: "something died..."})
-    def get(self, serviceId, forecastHorizon=12):
-        # Create new forecast on a new thread and copy to DB
-        models = model_repository.get_all_models_by_service(serviceId)
-        historical = historical_repository.get_by_service(serviceId)
-        data = [format_data(obj.data) for obj in historical]
-        if not serviceId in forecasters:
-            forecaster = Forecaster(models, serviceId, forecast_repository, model_repository)
-            # TODO: use horizon from settings
-            forecasters[serviceId] = {
-                "forecaster":forecaster,
-                "thread":Process(target=forecaster.create_forecasts, args=[forecastHorizon, data[0]])
-            }
+    @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 500: "something died..."})
+    def get(self, service_id, forecast_horizon=12):
+        historical:list[Historical] = historical_repository.get_by_service(service_id)
+        if not historical:
+            return Response(status=400, response=dumps({"message":f"Error, historical table is empty for service: {service_id}"}))
+
+        if not service_id in forecasters:
+            forecasters[service_id] = Forecaster(service_id, model_repository, forecast_repository)
+
+        forecasters[service_id].predict(historical[0], forecast_horizon)
 
 
-        forecaster:Forecaster = forecasters[serviceId]["forecaster"]
-        thread:Process = forecasters[serviceId]["thread"]
+        return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
-        # Check if an active forecasting thread exists for this service
-        if not thread.is_alive():
-            t = Process(target=forecaster.create_forecasts, args=[forecastHorizon, data[0]])
-            forecasters[serviceId]["thread"] = t
-            t.start()
-            t.join()
-        else:
-            thread.join()
-
-        
-
-        return Response(status=200, response=dumps({"message": f"Forecasts finished for {serviceId}"}))#, "forecast":newest.forecast}))
 
 
 
