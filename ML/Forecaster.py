@@ -41,6 +41,6 @@ class Forecaster:
                 print(f"Model failed, continuing no next model: {e}")
 
         print(f"Forecasts count: {len(forecasts)}")
-        forecast = list(filter(lambda forecast: forecast.error == min(forecast.error for forecast in forecasts), forecasts))[0]
+        forecast = min(forecasts, key=lambda x: x.error)
         self.forecast_repository.insert_forecast(forecast, self.id)
 
