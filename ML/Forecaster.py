@@ -36,9 +36,11 @@ class Forecaster:
                 else:
                     forecast_rmse = i
                 forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
+                print("saved forecast for comparison...")
             except Exception as e:
                 print(f"Model failed, continuing no next model: {e}")
 
+        print(f"Forecasts count: {len(forecasts)}")
         forecast = list(filter(lambda forecast: forecast.error == min(forecast.error for forecast in forecasts), forecasts))[0]
         self.forecast_repository.insert_forecast(forecast, self.id)
 
