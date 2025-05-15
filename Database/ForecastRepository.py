@@ -19,3 +19,8 @@ class ForecastRepository:
         params = [str(gen_uuid()), str(forecast.modelId), serialForecast, str(service_id), datetime.now()]
         self.db.execute(query, params)
 
+    def upsert_forecast(self, forecast:Forecast, service_id:UUID) -> None:
+        query = "INSERT INTO forecasts(id, modelid, forecast, serviceid, createdat) VALUES (%s, %s, %s, %s, %s) ON CONFLICT(serviceid) DO UPDATE SET forecast = %s"
+        serialForecast = forecast.serialize()
+        params = [str(gen_uuid()), str(forecast.modelId), serialForecast, str(service_id), datetime.now(), serialForecast]
+        self.db.execute(query, params)

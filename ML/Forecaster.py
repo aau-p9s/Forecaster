@@ -42,5 +42,5 @@ class Forecaster:
 
         print(f"Forecasts count: {len(forecasts)}")
         forecast = min(forecasts, key=lambda x: x.error)
-        self.forecast_repository.insert_forecast(forecast, self.id)
+        self.forecast_repository.upsert_forecast(forecast, self.id)
 
