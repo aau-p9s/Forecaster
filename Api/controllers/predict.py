@@ -23,7 +23,7 @@ class Predict(Resource):
         if not service_id in forecasters:
             forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository)
 
-        forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
+        forecasters[service_id].predict(historical if historical else None, forecast_horizon)
 
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
