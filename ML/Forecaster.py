@@ -18,26 +18,20 @@ class Forecaster:
         self.model_repository = model_repository
         self.forecast_repository = forecast_repository
 
-    def predict(self, series:list[Historical] | None, horizon:int):
-        self._process = Process(target=self._predict, args=[series, horizon])
+    def predict(self, series:Historical | None, horizon:int):
+        self._process = Process(target=self._predict, args=[load_historical_data(series) if series else None, horizon])
         self._process.start()
 
-    def _predict(self, series:list[Historical] | None, horizon:int):
+    def _predict(self, series:TimeSeries | None, horizon:int):
         models = self.model_repository.get_all_models_by_service(self.id)
         forecasts:list[Forecast] = []
-
-        if series is not None:
-            newest = list(filter(lambda historical: historical.timestamp == max(historical.timestamp for historical in series), series))[0]
-        else:
-            newest = None
 
         for i, model in enumerate(models):
             try:
                 forecast = model.model.predict(horizon)
                 print("Created forecast")
-                if newest:
-                    historical_data = load_historical_data(newest)
-                    forecast_rmse = rmse(historical_data, forecast)
+                if series:
+                    forecast_rmse = rmse(series, forecast)
                     print("Calculated RMSE")
                 else:
                     forecast_rmse = i
