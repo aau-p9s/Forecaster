@@ -1,4 +1,4 @@
-FROM unit8/darts:latest
+FROM unit8/darts:0.32.0
 
 WORKDIR /src
 
