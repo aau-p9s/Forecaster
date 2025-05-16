@@ -111,7 +111,7 @@ def test_forecaster(forecast_repository, model_repository:ModelRepository, sampl
     model_id = gen_uuid()
     service_id = gen_uuid()
     model_obj.fit(data_processed[-10:])
-    model = Model(model_id, "NaiveSeasonal", model_obj, service_id, scaler)
+    model = Model(model_id, "NaiveSeasonal", model_obj, service_id)
     model_repository.insert_model(model)
     
     forecaster = Forecaster(model.serviceId, model_repository, forecast_repository)
