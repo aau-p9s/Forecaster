@@ -104,9 +104,8 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository, model_repository:ModelRepository, sample_time_series):
-    data = sample_time_series
-    data_processed, missing_values_ratio, scaler = run_transformer_pipeline(data)
+def test_forecaster(forecast_repository, model_repository:ModelRepository, sample_time_series:TimeSeries):
+    data_processed, missing_values_ratio, scaler = run_transformer_pipeline(sample_time_series)
     model_obj = NaiveSeasonal()
     model_obj.fit(data_processed[-10:])
     model = Model(gen_uuid(), model_obj, "service", scaler)

@@ -1,6 +1,7 @@
 from darts.datasets import AirPassengersDataset
 from darts.models import NaiveSeasonal
 import pytest
+from json import dumps
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
 from Database.HistoricalRepository import HistoricalRepository
@@ -25,7 +26,7 @@ def test_get_all_models_by_service(mock_db):
     service_id = gen_uuid()
     model = Model(model_id, "NaiveSeasonal", model_obj, service_id, None)
     mock_db.execute_get.return_value = [
-        ("model-id", type(model_obj).__name__, model.get_binary(), model.serviceId)
+        (model_id, type(model_obj).__name__, model.get_binary(), model.serviceId)
     ]
 
     model_repo = ModelRepository(mock_db)
@@ -59,7 +60,7 @@ def test_get_historical(mock_db):
     service_id = gen_uuid()
     historical = Historical(historical_id, service_id, 0.0, {'data':'xd'})
     mock_db.execute_get.return_value = [
-        (historical.id, historical.service_id, historical.timestamp, historical.data)
+        (str(historical.id), str(historical.service_id), historical.timestamp, json.dumps(historical.data))
     ]
     
     repo = HistoricalRepository(mock_db)
