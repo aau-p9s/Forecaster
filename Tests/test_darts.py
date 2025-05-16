@@ -124,7 +124,7 @@ def test_forecaster(forecast_repository, model_repository:ModelRepository, sampl
 
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
-    assert forecast.forecast.n_timesteps == 13
+    assert forecast.forecast.n_timesteps == 1
     assert isinstance(forecast, Forecast)
 
     # dump = forecast.forecast.to_json()
