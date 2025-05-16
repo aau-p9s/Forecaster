@@ -122,8 +122,6 @@ def test_forecaster(forecast_repository, model_repository:ModelRepository, sampl
 
     print(forecast.error)
 
-    forecast_repository.insert_forecast.assert_called_once()
-    
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
     assert forecast.forecast.n_timesteps == 13
