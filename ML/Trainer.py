@@ -1,83 +1,46 @@
 
+
+from multiprocessing import Process
+from uuid import UUID
+
+from darts import TimeSeries
+
+from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
-from Database.ForecastRepository import Forecast, ForecastRepository
-from .Darts.Training.ensemble_training import EnsembleTrainer
+from Database.Models.Historical import Historical
 from Database.Models.Model import Model
-from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
-import torch
-import os
-from ML.Darts.Utils.preprocessing import run_transformer_pipeline, load_data, load_json_data
-from darts.metrics import rmse, mae, smape
-import datetime
-import uuid
+from ML.Darts.Utils.preprocessing import load_historical_data, load_json_data, run_transformer_pipeline
+from ML.Forecaster import Forecaster
+
 
 class Trainer:
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    torch.set_float32_matmul_precision("medium")
-    trained_models:list[Model] = []
+    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository) -> None:
+        self.id:UUID = service_id
+        self.model_repository:ModelRepository = model_repository
+        self.forecast_repository:ForecastRepository = forecast_repository
+        self.forecaster = Forecaster(service_id, model_repository, forecast_repository)
 
-    def __init__(self, models:list[Model], serviceId, data, forecast_period, split_train_val, repository:ModelRepository, forecast_repository:ForecastRepository):
-        self.models = models
-        self.serviceId = serviceId
-        self.data = data
-        self.forecast_period = forecast_period
-        self.split_train_val = split_train_val
-        self.repository = repository
-        self.forecast_repository = forecast_repository
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def train(self, series:Historical, horizon:int) -> None:
+        self._process:Process = Process(target=self._train, args=[series, horizon])
+        self._process.start()
 
-    def train_model(self):
-        for model in self.models:
+    def _train(self, data:Historical, horizon:int) -> None:
+        series:TimeSeries = load_historical_data(data)
+        preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
+        train_series, validation_series = preprocessed_series.split_after(.75)
+        print(f"preprocessed_series length: {len(preprocessed_series)}")
+        print(f"mssing_value_ratio:         {missing_value_ratio}")
+        print(f"scaler:                     {scaler}")
+
+        models = self.model_repository.get_all_models_by_service(self.id)
+        for model in models:
             try:
-              
-                # 1. Preprocess
-                self.series = load_json_data(self.data)
-                preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(self.series)
-                self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val)
-                model.scaler = scaler
-
-                # 1. Train model using Darts
-                print(f"Training {model.__class__.__name__} for {self.serviceId}")
-                model.model = model.model.fit(self.series)
-                print(f"{model.__class__.__name__} fitted for {self.serviceId}")
-                model.trainedTime = datetime.date.today()
-                print(f"Predicting {model.__class__.__name__} for {self.serviceId}")
-                forecast = model.predict(self.forecast_period)
-                val_target = self.val_series[
-                    : len(forecast)
-                ]
-                model.model.predict(self.forecast_period)
-                print(f"{model.__class__.__name__} predicted for {self.serviceId}")
-                rmse_value = rmse(val_target, forecast)
-                print(f"RMSE for {model.__class__.__name__}: {rmse_value}")
-
-                forecast = Forecast(model.modelId, forecast, rmse_value)
-                self.forecast_repository.insert_forecast(forecast, self.serviceId)
-                print("Forecast inserted in db")
-
-                # 2. Insert trained model into db
-                self.repository.insert_model(model)
-                print(f"{model.__class__.__name__} inserted in db")
-
+                fitted_model = model.model.fit(train_series)
+                print("Fitted model")
+                self.model_repository.upsert_model(Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler))
+                print("Saved model")
             except Exception as e:
-                print(f"Error training {model.__class__.__name__}: {str(e)}")
+                raise e
 
-    def train_ensemble(self, ensemble_candidates):
-        self.series = load_json_data(self.data)
-        preprocessed_series, missing_values_ratio, scaler = run_transformer_pipeline(self.series)
-        self.train_series, self.val_series = preprocessed_series[0].split_after(self.split_train_val)
-        
-        trainer = EnsembleTrainer(ensemble_candidates, self.train_series, self.val_series, self.forecast_period, split_train_val=self.split_train_val)
-        print("Training learned ensemble model")
-        learned = trainer.create_learned_ensemble_model()
-        model = Model("", learned[2], self.serviceId, scaler)
-        self.repository.insert_model(model)
-        forecast = Forecast(model.modelId, learned[1], learned[0])
-        self.forecast_repository.insert_forecast(forecast, self.serviceId)
-        print("Training naive ensemble model")
-        naive = trainer.create_naive_ensemble_model()
-        model = Model("", naive[2], self.serviceId, scaler)
-        self.repository.insert_model(model)
-        forecast = Forecast(model.modelId, naive[1], naive[0])
-        self.forecast_repository.insert_forecast(forecast, self.serviceId)
-        return f"Ensemble models trained and inserted in db"
+
+        self.forecaster._predict(validation_series, horizon)

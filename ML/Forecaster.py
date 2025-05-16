@@ -1,51 +1,48 @@
+from multiprocessing import Process
+import traceback
+from uuid import UUID
 from darts import TimeSeries
 from Database.ForecastRepository import ForecastRepository
+from Database.HistoricalRepository import HistoricalRepository
 from Database.ModelRepository import ModelRepository
 from darts.metrics import rmse
 from Database.Models.Forecast import Forecast
+from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from sklearn.preprocessing import MinMaxScaler
-from ML.Darts.Utils.preprocessing import Scaler
+from ML.Darts.Utils.preprocessing import Scaler, load_historical_data
 
-class Forecaster: # Each service has one of these to create / keep track of forecasts
-    forecasts:list[Forecast] = []
-    
-    def __init__(self, models: list[Model], serviceId, repository:ForecastRepository, model_repository:ModelRepository):
-        self.models:list[Model] = models
-        self.serviceId = serviceId
-        self.repository = repository
+class Forecaster:
+    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository) -> None:
+        self.id = service_id
         self.model_repository = model_repository
-    
-    def create_forecasts(self, forecastHorizon, historicalData=None):
-        """Creates a forecast for each supplied model and calculates its error by backtesting
-        Args:
-          historicalData (TimeSeries): Used to backtest and supply timestamp where to predict from
-        Returns:
-            str: Best forecast.
-        """
-        for model in self.models:
-            # Use predict from Darts and backtest to calculate errors for models on historical data here
-            forecast = model.model.predict(forecastHorizon)
-            # TODO: use real data
-            if historicalData is None:
-                historicalData = TimeSeries.from_csv("./Assets/test_data.csv")
-            forecast_error = rmse(historicalData, forecast, intersect=True)
-            forecast = Forecast(model.modelId, forecast, forecast_error)
-            self.forecasts.append(forecast)
+        self.forecast_repository = forecast_repository
 
-            self.repository.insert_forecast(forecast, self.serviceId) #Maybe shouldn't insert all forecasts, but only the best one
-            print("Forecast inserted in db")
-        best_forecast = self.find_best_forecast()
-        print(f"Best forecast: {best_forecast.modelId} with error {best_forecast.error}")
-        best_forecast_model = self.model_repository.get_by_modelid_and_service(best_forecast.modelId, self.serviceId)
-        
-        scaler = Scaler(MinMaxScaler(feature_range=(0, 1)))
-        scaler.fit(historicalData)
+    def predict(self, series:Historical | None, horizon:int):
+        self._process = Process(target=self._predict, args=[load_historical_data(series) if series else None, horizon])
+        self._process.start()
 
-        best_forecast.inverse_scale(scaler)
-        best_forecast = Forecast(best_forecast_model.modelId, forecast = best_forecast, error=best_forecast.error)
-        return best_forecast
+    def _predict(self, series:TimeSeries | None, horizon:int) -> Forecast:
+        models = self.model_repository.get_all_models_by_service(self.id)
+        forecasts:list[Forecast] = []
 
-    def find_best_forecast(self): # forecast ranker
-        """Finds the forecast with the lowest error and assumes that it is the best"""
-        return min(self.forecasts, key=lambda x: x.error)
+        for i, model in enumerate(models):
+            try:
+                forecast = model.model.predict(horizon)
+                print("Created forecast")
+                if series:
+                    forecast_rmse = rmse(series, forecast)
+                    print("Calculated RMSE")
+                else:
+                    forecast_rmse = i
+                forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
+                print("saved forecast for comparison...")
+            except Exception as e:
+                print(f"Model failed, continuing no next model: {e}")
+
+        print(f"Forecasts count: {len(forecasts)}")
+        forecast = min(forecasts, key=lambda x: x.error)
+        self.forecast_repository.upsert_forecast(forecast, self.id)
+
+        return forecast
+

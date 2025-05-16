@@ -1,7 +1,11 @@
+from datetime import datetime
+import json
+from typing import final
 from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from Database.Models.Historical import Historical
 import matplotlib.pyplot as plt
 from darts import TimeSeries
 import pandas as pd
@@ -36,6 +40,8 @@ def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
     return (scaled, transformer)
 
 def remove_outliers(series: TimeSeries, outlier_thresh):
+    if series is None:
+        raise ValueError("TimeSeries is None.")
     threshold = outlier_thresh
     values = series.values().squeeze()
     cleaned_values = np.where(values > threshold, np.nan, values)
@@ -51,6 +57,8 @@ def run_transformer_pipeline(
     outlier_thresh=3000,
 ) -> tuple[TimeSeries, float, Scaler]:
     """Preprocessing pipeline which handles missing values, denoises and scales the timeseries"""
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
     if resample is not None:
         timeseries.resample(resample)
     timeseries = handle_negative_values(timeseries)
@@ -91,5 +99,25 @@ def load_data(data: str | list[float, int], granularity=None):
     return ts
 
 
+
+def load_historical_data(data:Historical) -> TimeSeries:
+    series = {
+        "timestamp": [datetime.fromtimestamp(value[0]) for value in data.data["data"]["result"][0]["values"]],
+        "value": [float(value[1]) for value in data.data["data"]["result"][0]["values"]]
+    }
+    df = pd.DataFrame(series)
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', fill_missing_dates=True, freq="1min")
+    return final_series
+
+
 def load_json_data(json_data):
-    return TimeSeries.from_json(json_data)
+    tuning_data = json_data["tuning_data"]
+    df = pd.DataFrame(tuning_data)
+    df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
+    series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value')
+
+    if series is None:
+        raise ValueError("TimeSeries did not load properly.")
+    
+    return series

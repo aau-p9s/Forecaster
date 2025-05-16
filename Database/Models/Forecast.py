@@ -1,9 +1,10 @@
 from typing import Any
+from uuid import UUID
 from darts import TimeSeries
 from darts.dataprocessing.transformers import Scaler
 
 class Forecast:
-    def __init__(self, modelId, forecast: TimeSeries, error:Any=float('inf')):
+    def __init__(self, modelId:UUID, forecast: TimeSeries, error:Any=float('inf')):
         self.modelId = modelId
         self.forecast = forecast
         self.error = error

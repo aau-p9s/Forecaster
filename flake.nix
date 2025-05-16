@@ -7,11 +7,9 @@
         devShells.${system}.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
                 (python312.withPackages (py: with py; [
-                    flask
-                    flask-restx
                     psycopg2
-                    pytest
                     ipython
+                    cloudpickle
                 ]))
                 postgresql
             ];
