@@ -33,7 +33,7 @@ def test_get_all_models_by_service(mock_db):
     result = model_repo.get_all_models_by_service(service_id)
 
     mock_db.execute_get.assert_called_once_with(
-        'SELECT id, name, bin from models WHERE "serviceid" = %s;', [model.serviceId]
+        'SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(model.serviceId)]
     )
     assert result[0].get_binary() == model.get_binary() # Ensure the model is equal in the database
 
