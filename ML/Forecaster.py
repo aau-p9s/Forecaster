@@ -22,7 +22,7 @@ class Forecaster:
         self._process = Process(target=self._predict, args=[load_historical_data(series) if series else None, horizon])
         self._process.start()
 
-    def _predict(self, series:TimeSeries | None, horizon:int):
+    def _predict(self, series:TimeSeries | None, horizon:int) -> Forecast:
         models = self.model_repository.get_all_models_by_service(self.id)
         forecasts:list[Forecast] = []
 
@@ -43,4 +43,6 @@ class Forecaster:
         print(f"Forecasts count: {len(forecasts)}")
         forecast = min(forecasts, key=lambda x: x.error)
         self.forecast_repository.upsert_forecast(forecast, self.id)
+
+        return forecast
 

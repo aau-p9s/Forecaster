@@ -1,3 +1,4 @@
+from Database.Utils import gen_uuid
 import pytest
 import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel, NaiveSeasonal
@@ -11,7 +12,7 @@ from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.Models.Model import Model
 import cloudpickle as pickle
-from ML.Darts.Utils.preprocessing import run_transformer_pipeline
+from ML.Darts.Utils.preprocessing import run_transformer_pipeline, scaler
 from datetime import datetime
 import pandas as pd
 
@@ -28,14 +29,14 @@ def forecast_repository(mock_db):
     return repo
 
 @pytest.fixture
-def model_repository(mock_db, sample_time_series):
+def model_repository(mock_db, sample_time_series:TimeSeries):
     """Creates a ModelRepository instance with a mocked DB connection."""
     model_obj = NaiveSeasonal()
-    model = Model("model-id", model_obj, "service")
+    model = Model(gen_uuid(), "NaiveSeasonal", model_obj, gen_uuid(), scaler(sample_time_series))
     model_obj.fit(sample_time_series)
     pickled_model = pickle.dumps(model_obj)
     
-    mock_db.get_by_modelid_and_service.return_value = Model("model-id", model_obj, "service")
+    mock_db.get_by_modelid_and_service.return_value = model
     mock_db.execute_get.return_value = [("model-id", "model-name", pickled_model)]
 
 
@@ -104,17 +105,17 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository, model_repository, sample_time_series):
+def test_forecaster(forecast_repository, model_repository:ModelRepository, sample_time_series):
     data = sample_time_series
     data_processed, missing_values_ratio, scaler = run_transformer_pipeline(data)
     model_obj = NaiveSeasonal()
     model_obj.fit(data_processed[-10:])
-    model = Model("model-id", model_obj, "service", scaler)
-    models = [model]
+    model = Model(gen_uuid(), model_obj, "service", scaler)
+    model_repository.insert_model(model)
     
-    forecaster = Forecaster(models, model.serviceId, forecast_repository, model_repository)
+    forecaster = Forecaster(model.serviceId, model_repository, forecast_repository)
     
-    forecast = forecaster.create_forecasts(1, data_processed)
+    forecast = forecaster._predict(data_processed, 1)
 
     print(forecast.error)
 
