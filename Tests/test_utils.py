@@ -95,14 +95,14 @@ def test_load_data_with_infered_granularity_from_epoch(sample_data_epoch):
 
 def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_values : TimeSeries):
 
-    assert sample_timeseries_missing_values.to_dataframe().isna().any().any()
+    assert sample_timeseries_missing_values.pd_dataframe().isna().any().any()
 
     ts, ratio, scaler = run_transformer_pipeline(sample_timeseries_missing_values)
 
-    assert not ts.to_dataframe().isna().any().any()
+    assert not ts.pd_dataframe().isna().any().any()
     assert isinstance(ratio, float)
 
-    df_processed = ts.to_dataframe()
+    df_processed = ts.pd_dataframe()
 
     assert df_processed.values.min() >= 0, "Found values below 0, scaling failed"
     assert df_processed.values.max() <= 1, "Found values above 1, scaling failed"

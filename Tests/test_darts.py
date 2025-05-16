@@ -32,13 +32,12 @@ def forecast_repository(mock_db):
 def model_repository(mock_db, sample_time_series:TimeSeries):
     """Creates a ModelRepository instance with a mocked DB connection."""
     model_obj = NaiveSeasonal()
-    model = Model(gen_uuid(), "NaiveSeasonal", model_obj, gen_uuid(), scaler(sample_time_series))
+    model_id = gen_uuid()
+    service_id = gen_uuid()
+    model = Model(model_id, "NaiveSeasonal", model_obj, service_id, scaler(sample_time_series))
     model_obj.fit(sample_time_series)
-    pickled_model = pickle.dumps(model_obj)
     
     mock_db.get_by_modelid_and_service.return_value = model
-    mock_db.execute_get.return_value = [("model-id", "model-name", pickled_model)]
-
 
     return ModelRepository(mock_db)
 
