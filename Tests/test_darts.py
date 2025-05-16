@@ -35,10 +35,12 @@ def model_repository(mock_db, sample_time_series:TimeSeries):
     model_obj = NaiveSeasonal()
     model_id = gen_uuid()
     service_id = gen_uuid()
-    model = Model(model_id, "NaiveSeasonal", model_obj, service_id, scaler(sample_time_series))
+    model = Model(model_id, "NaiveSeasonal", model_obj, service_id)
     model_obj.fit(sample_time_series)
     
-    mock_db.get_by_modelid_and_service.return_value = model
+    mock_db.execute_get.return_value = [
+        (str(model_id), type(model_obj).__name__, model.get_binary(), str(service_id))
+    ]
 
     return ModelRepository(mock_db)
 
