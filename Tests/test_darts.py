@@ -107,8 +107,10 @@ def test_naive_ensemble_model(ensemble_training_local):
 def test_forecaster(forecast_repository, model_repository:ModelRepository, sample_time_series:TimeSeries):
     data_processed, missing_values_ratio, scaler = run_transformer_pipeline(sample_time_series)
     model_obj = NaiveSeasonal()
+    model_id = gen_uuid()
+    service_id = gen_uuid()
     model_obj.fit(data_processed[-10:])
-    model = Model(gen_uuid(), model_obj, "service", scaler)
+    model = Model(model_id, "NaiveSeasonal", model_obj, scaler)
     model_repository.insert_model(model)
     
     forecaster = Forecaster(model.serviceId, model_repository, forecast_repository)
