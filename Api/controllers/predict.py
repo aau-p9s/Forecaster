@@ -9,7 +9,6 @@ from Database.Models.Historical import Historical
 from ML.Forecaster import Forecaster
 from ..lib.variables import api, model_repository, forecast_repository, historical_repository
 
-
 forecasters:dict[str, Forecaster] = {}
 
 @api.route("/predict/<string:service_id>/<int:forecast_horizon>")
