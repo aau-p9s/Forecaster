@@ -36,10 +36,8 @@ class ModelRepository:
     def get_all_models(self) -> list[UUID]:
         return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]
 
-    def insert_model(self, model:Model) -> Model:
-        result = self.db.execute_get('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, name, bin, serviceid', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
-        obj = pickle.loads(result[0][2])
-        return Model(UUID(result[0][0]), result[0][1], obj, UUID(result[0][2]))
+    def insert_model(self, model:Model):
+        self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
 
     def upsert_model(self, model:Model) -> None:
         self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])
