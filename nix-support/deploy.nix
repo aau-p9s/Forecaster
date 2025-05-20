@@ -9,10 +9,9 @@ let
 
         WORKDIR /run 
 
-        RUN pip install psycopg2 optuna cloudpickle
+        RUN pip install psycopg2_binary optuna cloudpickle
 
         COPY . .
-        COPY ./Assets/models ./models
 
 
         ENTRYPOINT [ "python", "./insert_cloudpickle.py" ]
@@ -24,9 +23,8 @@ writeScriptBin "deploy" ''
     #!${bash}/bin/bash
     set -e
 
-    cat ${initialize}/bin/.main.py > .main.py
     printf "\U0001F40B building deployment container\n"
-    ${docker}/bin/docker build . -f ${dockerfile} -t deploy:latest -q
+    ${docker}/bin/docker build . -f ${dockerfile} -t deploy:latest
     rm -f .main.py
 
     printf "\U0001F40B deploying db\n"
