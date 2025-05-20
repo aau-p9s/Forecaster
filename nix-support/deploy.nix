@@ -28,5 +28,5 @@ writeScriptBin "deploy" ''
     rm -f .main.py
 
     printf "\U0001F40B deploying db\n"
-    ${docker}/bin/docker run deploy:latest 2> /tmp/deploy.stdout
+    ${docker}/bin/docker run deploy:latest --dbname ${postgres_database} --dbuser ${postgres_user} --dbhost ${postgres_host} --dbport ${postgres_port} --dbpassword ${postgres_password} 2> /tmp/deploy.stdout
 ''
