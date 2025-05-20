@@ -1,6 +1,10 @@
+from os import walk
+from Database.Models import Settings
+from Database.SettingsRepository import SettingsRepository
+from Database.Utils import gen_uuid
 import pytest
 import darts.models as models
-from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
+from darts.models import RegressionEnsembleModel, NaiveEnsembleModel, NaiveSeasonal
 from darts.timeseries import TimeSeries
 import numpy as np
 from ML.Darts.Training.ensemble_training import EnsembleTrainer
@@ -8,8 +12,15 @@ from darts.datasets import AirPassengersDataset
 from ML.Forecaster import Forecaster, Forecast
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
+from Database.ModelRepository import ModelRepository
 from Database.Models.Model import Model
-import pickle
+import cloudpickle as pickle
+from ML.Darts.Utils.preprocessing import run_transformer_pipeline, scaler
+from datetime import datetime
+import pandas as pd
+
+settings_id = gen_uuid()
+service_id = gen_uuid()
 
 @pytest.fixture
 def mock_db():
@@ -19,14 +30,39 @@ def mock_db():
 @pytest.fixture
 def forecast_repository(mock_db):
     """Creates a ForecastRepository instance with a mocked DB connection."""
-    return ForecastRepository(mock_db)
+    repo = ForecastRepository(mock_db)
+    repo.insert_forecast = MagicMock(return_value=None)
+    return repo
+
+@pytest.fixture
+def model_repository(mock_db, sample_time_series:TimeSeries):
+    """Creates a ModelRepository instance with a mocked DB connection."""
+    model_obj = NaiveSeasonal()
+    model_id = gen_uuid()
+    service_id = gen_uuid()
+    model = Model(model_id, "NaiveSeasonal", model_obj, service_id)
+    model_obj.fit(sample_time_series)
+    
+    mock_db.execute_get.return_value = [
+        (str(model_id), type(model_obj).__name__, model.get_binary(), str(service_id))
+    ]
+
+    return ModelRepository(mock_db)
+
+@pytest.fixture
+def settings_repository():
+    repo = MagicMock()
+    repo.get_settings.return_value = Settings.Setting(settings_id, service_id, 5, 5, 5, 5, 5, 5)
+    return repo
 
 
 @pytest.fixture
 def sample_time_series():
-    """Creates a sample TimeSeries for testing."""
+    """Creates a datetime-indexed TimeSeries for testing."""
     values = np.random.rand(100)
-    return TimeSeries.from_values(values)
+    start = datetime(2000, 1, 1)
+    time_index = pd.date_range(start=start, periods=100, freq='h')  # daily frequency
+    return TimeSeries.from_times_and_values(time_index, values)
 
 @pytest.fixture
 def pre_trained_local_models(sample_time_series):
@@ -54,12 +90,14 @@ def pre_trained_global_models(sample_time_series):
 @pytest.fixture
 def ensemble_training_local(pre_trained_local_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTrainer(pre_trained_local_models, sample_time_series, forecast_period=12)
+    train_series, val_series = sample_time_series.split_after(0.75)
+    return EnsembleTrainer(pre_trained_local_models, train_series, val_series, forecast_period=12)
 
 @pytest.fixture
 def ensemble_training_global(pre_trained_global_models, sample_time_series):
     """Returns an instance of EnsembleTraining with pre-trained models."""
-    return EnsembleTrainer(pre_trained_global_models, sample_time_series, forecast_period=12)
+    train_series, val_series = sample_time_series.split_after(0.75)
+    return EnsembleTrainer(pre_trained_global_models, train_series, val_series, forecast_period=12)
 
 
 def test_learned_ensemble_model(ensemble_training_global):
@@ -80,20 +118,24 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository):
-    data = AirPassengersDataset().load()
+def test_forecaster(mock_db, forecast_repository, model_repository:ModelRepository, settings_repository, sample_time_series:TimeSeries):
+    data_processed, missing_values_ratio, scaler = run_transformer_pipeline(sample_time_series)
+    model_obj = NaiveSeasonal()
+    model_id = gen_uuid()
+    service_id = gen_uuid()
+    model_obj.fit(data_processed[-10:])
+    model = Model(model_id, "NaiveSeasonal", model_obj, service_id)
+    model_repository.insert_model(model)
 
-    with open("./Assets/test_model.pth", "rb") as file:
-        modelObj = pickle.loads(file.read())
-    model = Model("model-id", modelObj, "service")
-    models = [model]
-    forecaster = Forecaster(models, model.serviceId, forecast_repository)
+    forecaster = Forecaster(model.serviceId, model_repository, forecast_repository, settings_repository)
     
-    forecast = forecaster.create_forecasts(13, data)
-    
+    forecast = forecaster._predict(data_processed, 1)
+
+    print(forecast.error)
+
     assert forecast is not None
     assert isinstance(forecast.forecast, TimeSeries)
-    assert forecast.forecast.n_timesteps == 13
+    assert forecast.forecast.n_timesteps == 1
     assert isinstance(forecast, Forecast)
 
     # dump = forecast.forecast.to_json()

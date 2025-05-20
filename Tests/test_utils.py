@@ -93,11 +93,11 @@ def test_load_data_with_infered_granularity_from_epoch(sample_data_epoch):
     # This checks if freq is inferred correctly
     assert ts.freq == granularity, f"Expected granularity {granularity}, but got {ts.freq}"
 
-def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_values):
+def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_values : TimeSeries):
 
     assert sample_timeseries_missing_values.pd_dataframe().isna().any().any()
 
-    ts, ratio = run_transformer_pipeline(sample_timeseries_missing_values)
+    ts, ratio, scaler = run_transformer_pipeline(sample_timeseries_missing_values)
 
     assert not ts.pd_dataframe().isna().any().any()
     assert isinstance(ratio, float)

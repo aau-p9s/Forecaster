@@ -36,6 +36,11 @@
         };
         devShells.${system}.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
+                (python312.withPackages (py: with py; [
+                    psycopg2
+                    ipython
+                    cloudpickle
+                ]))
                 postgresql
             ];
         };
