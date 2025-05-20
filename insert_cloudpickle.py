@@ -3,16 +3,25 @@ import cloudpickle
 import psycopg2
 from uuid import uuid4
 from datetime import datetime
+import argparse
+import sys
 
+parser = argparse.ArgumentParser(sys.argv[1])
+parser.add_argument("--dbname", type=str, default="autoscaler")
+parser.add_argument("--dbuser", type=str, default="root")
+parser.add_argument("--dbpassword", type=str, default="password")
+parser.add_argument("--dbhost", type=str, default="0.0.0.0")
+parser.add_argument("--dbport", type=int, default=5432)
+args = vars(parser.parse_args(sys.argv))
 
 BASE_DIR = os.path.expanduser("./Assets/models")
 
 DB_CONFIG = {
-    "dbname": "autoscaler",
-    "user": "root",
-    "password": "password",
-    "host": "localhost",
-    "port": 5432,
+    "dbname": args["dbname"],
+    "user": args["dbuser"],
+    "password": args["dbpassword"],
+    "host": args["dbhost"],
+    "port": args["dbport"],
 }
 
 INSERT_SQL = '''
