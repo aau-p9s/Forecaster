@@ -60,7 +60,7 @@ def test_get_historical(mock_db):
     service_id = gen_uuid()
     historical = Historical(historical_id, service_id, 0.0, {'data':'xd'})
     mock_db.execute_get.return_value = [
-        (str(historical.id), str(historical.service_id), historical.timestamp, json.dumps(historical.data))
+        (str(historical.id), str(historical.service_id), historical.timestamp, historical.data)
     ]
     
     repo = HistoricalRepository(mock_db)

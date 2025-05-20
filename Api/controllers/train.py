@@ -7,7 +7,7 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, forecast_repository, historical_repository
+from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository
 
 trainers:dict[str, Trainer] = {}
 
@@ -16,7 +16,7 @@ class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working...", 500:"Something ML died!!!!"})
     def post(self, service_id:str, forecast_horizon=12):
         if not service_id in trainers:
-            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository)
+            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)
 
         historical:list[Historical] = historical_repository.get_by_service(UUID(service_id))
         if not historical:

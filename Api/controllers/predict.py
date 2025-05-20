@@ -7,7 +7,7 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecast_repository, historical_repository
+from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository
 
 forecasters:dict[str, Forecaster] = {}
 
@@ -20,7 +20,7 @@ class Predict(Resource):
             print("!!! WARNING !!! No data in historical table, this should not happen")
 
         if not service_id in forecasters:
-            forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository)
+            forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository, settings_repository)
 
         forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
 

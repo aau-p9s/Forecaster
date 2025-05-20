@@ -10,16 +10,20 @@ from Database.Models.Forecast import Forecast
 from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from sklearn.preprocessing import MinMaxScaler
+from Database.SettingsRepository import SettingsRepository
 from ML.Darts.Utils.preprocessing import Scaler, load_historical_data
 
 class Forecaster:
-    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository) -> None:
+    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
         self.id = service_id
         self.model_repository = model_repository
         self.forecast_repository = forecast_repository
+        self.settings_repository = settings_repository
 
     def predict(self, series:Historical | None, horizon:int):
-        self._process = Process(target=self._predict, args=[load_historical_data(series) if series else None, horizon])
+        settings = self.settings_repository.get_settings(self.id)
+        period = settings.scale_period
+        self._process = Process(target=self._predict, args=[load_historical_data(series, period) if series else None, horizon])
         self._process.start()
 
     def _predict(self, series:TimeSeries | None, horizon:int) -> Forecast:
