@@ -12,7 +12,7 @@ parser.add_argument("--dbuser", type=str, default="root")
 parser.add_argument("--dbpassword", type=str, default="password")
 parser.add_argument("--dbhost", type=str, default="0.0.0.0")
 parser.add_argument("--dbport", type=int, default=5432)
-args = vars(parser.parse_args(sys.argv))
+args = vars(parser.parse_args(sys.argv[1:]))
 
 BASE_DIR = os.path.expanduser("./Assets/models")
 
