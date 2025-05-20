@@ -51,5 +51,5 @@ writeScriptBin "deploy" ''
     rm -f .main.py
 
     printf "\U0001F40B deploying db\n"
-    ${docker}/bin/docker run --network store_${network} deploy:latest 2> /tmp/deploy.stdout
+    ${docker}/bin/docker run deploy:latest 2> /tmp/deploy.stdout
 ''
