@@ -118,7 +118,6 @@ def test_forecaster(mock_db, forecast_repository, model_repository:ModelReposito
     model_repository.insert_model(model)
 
     settings_id = gen_uuid()
-
     settings_repository = SettingsRepository(mock_db)
     mock_db.execute_get.return_value = [
         str(settings_id),
