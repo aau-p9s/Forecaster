@@ -11,9 +11,10 @@ class SettingsRepository:
 
     def get_settings(self, service_id:UUID) -> Setting:
         """Gets the current settings for the service."""
-        rows = self.db.execute_get('SELECT * FROM settings WHERE "Id"=%s;', [service_id])
+        rows = self.db.execute_get('SELECT id, serviceid, scaleup, scaledown, minreplicas, maxreplicas, scaleperiod, traininterval FROM settings WHERE serviceid = %s;', [str(service_id)])
+        print(rows)
         if len(rows) > 0:
             row = rows[0]
-            return Setting(UUID(row[0]), UUID(row[1]), int(row[2]), int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]), loads(row[8]), loads(row[9]))
-        raise DatabaseError
+            return Setting(UUID(row[0]), UUID(row[1]), int(row[2]), int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]))
+        raise DatabaseError(f"Error, settings table returned {len(rows)} rows: {rows} with service_id: {service_id}")
 
