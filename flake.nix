@@ -5,8 +5,8 @@
         pkgs = import inputs.nixpkgs { inherit system; };
 
         config = { 
-            postgres_address = "postgres";
-            postgres_port = "5432";
+            postgres_address = "10.92.1.139";
+            postgres_port = "30432";
             postgres_password = "password";
             postgres_user = "root";
             postgres_database = "autoscaler";
