@@ -14,6 +14,7 @@ writeScriptBin "reinit" ''
 
     rm -fr /tmp/autoscaler
     ${pkgs.git}/bin/git clone https://github.com/aau-p9s/Autoscaler /tmp/autoscaler
+    sed -i '29,31d' /tmp/autoscaler/Autoscaler.DbUp/Autoscaler.DbUp.csproj
     echo "migrating db"
 
     export AUTOSCALER__PGSQL__ADDR="${postgres_address}"
