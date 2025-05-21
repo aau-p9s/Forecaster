@@ -12,26 +12,24 @@ class ModelRepository:
         self.db = db
 
     def get_all_models_by_service(self, serviceId:UUID) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
+        rows = self.db.execute_get('SELECT id, name, bin, trainedat from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
-        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId) for row in rows]
+        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId, row[3]) for row in rows]
 
     def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
         rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
+            return Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId)
         raise psycopg2.DatabaseError
     
     def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
+        rows = self.db.execute_get('SELECT id, name, bin, trainedat FROM models WHERE "id" = %s AND "serviceid" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
-        raise psycopg2.DatabaseError
+            return Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId, row[3])
+        raise psycopg2.DatabaseError(f"Model not found: {modelId}, {serviceId}")
 
     def get_all_models(self) -> list[UUID]:
         return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]

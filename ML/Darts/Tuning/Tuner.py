@@ -3,6 +3,7 @@ import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
+from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.Utils import gen_uuid
 from .hyperparameters import HyperParameterConfig, encode_time, ENCODERS
@@ -42,23 +43,16 @@ class EarlyStoppingExceeded(optuna.exceptions.OptunaError):
 
 
 def early_stopping_opt(study, trial):
-    if EarlyStoppingExceeded.best_score == None:
+    if EarlyStoppingExceeded.best_score is None:
         EarlyStoppingExceeded.best_score = study.best_value
 
     if study.best_value < EarlyStoppingExceeded.best_score:
         EarlyStoppingExceeded.best_score = study.best_value
         EarlyStoppingExceeded.early_stop_count = 0
     else:
-        if EarlyStoppingExceeded.early_stop_count > EarlyStoppingExceeded.early_stop:
-            EarlyStoppingExceeded.early_stop_count = 0
-            EarlyStoppingExceeded.best_score = None
+        EarlyStoppingExceeded.early_stop_count += 1
+        if EarlyStoppingExceeded.early_stop_count >= EarlyStoppingExceeded.early_stop:
             raise EarlyStoppingExceeded()
-        else:
-            EarlyStoppingExceeded.early_stop_count = (
-                EarlyStoppingExceeded.early_stop_count + 1
-            )
-    return
-
 
 class Tuner:
     def __init__(
@@ -103,42 +97,45 @@ class Tuner:
         self.series = data
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
-        # self.models = [
-        #     cls
-        #     for name, cls in vars(models).items()
-        #     if inspect.isclass(cls) and issubclass(cls, ForecastingModel)
-        # ]
-        self.models = model_repository.get_all_models_by_service(serviceId)
+        stored_models: list[Model] = model_repository.get_all_models_by_service(serviceId)
+        self.models = [
+            Model(
+                model.modelId,
+                model.name,
+                cls,
+                model.serviceId,
+                model.scaler,
+                model.trainedTime
+            )
+            for model in stored_models
+            for name, cls in vars(models).items()
+            if inspect.isclass(cls)
+            and issubclass(cls, ForecastingModel)
+            and not inspect.isabstract(cls)
+            and name == model.name
+        ]
         self.past_covariates = None
         self.future_covariates = None
         self.best_score = float("inf")
-        self.best_model: ForecastingModel = None
+        self.best_model: Model = None
 
-    def __tune_model(self, model: ForecastingModel | Model | str):
-        if isinstance(model, str):  # Used for testing
-            print("Is string")
-            self.model = next(
-                (m for m in self.models if str.lower(model) in str.lower(m.__name__)),
-                None,
-            )
-            self.model_name = self.model.__class__.__name__
-        elif isinstance(model, Model):
+    def __tune_model(self, model:Model):
+        if isinstance(model, Model):
             print("Is Model")
-            self.model = model.model
-            self.model_name = model.model.__class__.__name__
-
+            self.forecast_model:ForecastingModel = model.model
+            self.model_name = model.name
         else:
             print("Is ForecastingModel")
-            self.model = model
+            self.model:ForecastingModel = model
             self.model_name = model.__name__
 
-        def objective(trial, model=self.model):
+        def objective(trial):
             try:
+                self.logger.info(f"MODEL: {self.forecast_model.__class__.__name__}")
                 # Get the model parameters
-                model_class = model.model.__class__
-                model_params = model.model._get_default_model_params()
-                # model._model_params
-                config = HyperParameterConfig(trial, model, series=self.train_series)
+                model_class = self.forecast_model
+                model_params = model_class._get_default_model_params()
+                config = HyperParameterConfig(trial, self.forecast_model, series=self.train_series)
                 uses_covariates = False
 
                 # Match the parameters with suggestions from HyperParameterConfig
@@ -252,7 +249,7 @@ class Tuner:
                                 self.future_covariates = None
 
                 if "pl_trainer_kwargs" in model_params.items() or isinstance(
-                    self.model, TorchForecastingModel
+                    self.forecast_model, TorchForecastingModel
                 ):
                     params["pl_trainer_kwargs"] = {
                         "accelerator": "gpu",
@@ -261,25 +258,29 @@ class Tuner:
                     }
 
                 # Instantiate the model
-                if model is not None:
-                    model = model_class(**params)
+                if self.forecast_model is not None:
+                    print(f"MODEL: {self.forecast_model}")
+                    model_to_train:ForecastingModel = model_class(**params)
                 else:
                     raise Exception("Model not found")
-                print(f"MODEL PARAMS: \n{model.model_params}\n")
+                print(f"MODEL PARAMS: \n{model_to_train.model_params}\n")
+
+                model.model = model_to_train
 
                 # Fit the model
                 print("TRAINING")
                 if uses_covariates:
-                    model.fit(
+                    model_to_train.fit(
                         self.train_series,
                         past_covariates=self.past_covariates,
                         future_covariates=self.future_covariates,
                     )
                 else:
-                    model.fit(self.train_series)
+                    model_to_train.fit(self.train_series)
+
                 print("PREDICTING")
 
-                forecast = model.predict(self.forecast_period)
+                forecast = model_to_train.predict(self.forecast_period)
                 val_target = self.val_series[
                     : len(forecast)
                 ]  # This is used to ensure that the forecast is validated against the ground truth for the same timeframe
@@ -293,25 +294,25 @@ class Tuner:
                 if rmse_value < self.best_score:
                     self.best_score = rmse_value
                     self.best_model = model
-                    plt.figure()
-                    val_target.plot(label="Actual")
-                    forecast.plot(label="Forecast")
-                    plt.text(
-                        0.1,
-                        0.97,
-                        f"MAE: {mae_value}\nSMAPE: {smape_value}",
-                        transform=plt.gca().transAxes,
-                        fontsize=10,
-                        verticalalignment="top",
-                        bbox=dict(facecolor="white", alpha=0.6),
-                    )
-                    plt.title(f"Best forecast for {self.model_name} RMSE: {rmse_value}")
-                    plt.legend()
-                    plt.grid(True)
-                    os.makedirs(f"{self.output}/figures", exist_ok=True)
-                    plt.savefig(
-                        f"{self.output}/figures/{self.model_name}_{trial.number}"
-                    )
+                    # plt.figure()
+                    # val_target.plot(label="Actual")
+                    # forecast.plot(label="Forecast")
+                    # plt.text(
+                    #     0.1,
+                    #     0.97,
+                    #     f"MAE: {mae_value}\nSMAPE: {smape_value}",
+                    #     transform=plt.gca().transAxes,
+                    #     fontsize=10,
+                    #     verticalalignment="top",
+                    #     bbox=dict(facecolor="white", alpha=0.6),
+                    # )
+                    #plt.title(f"Best forecast for {self.model_name} RMSE: {rmse_value}")
+                    #plt.legend()
+                    #plt.grid(True)
+                    #os.makedirs(f"{self.output}/figures", exist_ok=True)
+                    #plt.savefig(
+                    #    f"{self.output}/figures/{self.model_name}_{trial.number}"
+                    #)
                 return rmse_value
             except EarlyStoppingExceeded:
                 raise
@@ -334,7 +335,7 @@ class Tuner:
                 objective, n_trials=self.trials, callbacks=[early_stopping_opt]
             )
             print(f"Study done: {study.best_trial}")
-            if model is None:
+            if model.model is None:
                 self.logger.warning("No successful model was trained.")
             return (study, model)
         except EarlyStoppingExceeded as e:
@@ -358,31 +359,30 @@ class Tuner:
             print(
                 f"Best model and score reset to {self.best_model} and {self.best_score}"
             )
-            print(f"\nTuning {model} for service {self.serviceId}\n")
+            print(f"\nTuning {model.name} for service {self.serviceId}\n")
             try:
-                if model.model.__class__.__name__ is not None and model.model.__class__.__name__ in self.exclude_models:
-                    self.logger.info(f"EXCLUDING MODEL {model.__name__}")
-                    print(f"EXCLUDING MODEL {model.__name__}")
+                if model.name is not None and model.name in self.exclude_models:
+                    self.logger.info(f"EXCLUDING MODEL {model.name}")
                     continue
                 else:
                     study, trained_model = self.__tune_model(model)
-                print(f"\nDone with {model} for service {self.serviceId}\n")
-                output = self.output
-                if not os.path.exists(output):
-                    os.makedirs(output)
-                if self.model_name is not None:
-                    model_folder = os.path.join(output, self.model_name)
-                else:
-                    model_folder = os.path.join(output, self.__class__.__name__)
-                if not os.path.exists(model_folder):
-                    os.makedirs(model_folder)
-                print(f"Saving model {self.best_model} to {model_folder}")
-                if self.best_model is not None:
-                    self.best_model.save(
-                        f"{model_folder}/{self.best_model.__class__.__name__}.pth"
-                    )
-                else:
-                    self.logger.error("No model to save")
+                print(f"\nDone with {model.name} for service {self.serviceId}\n")
+                #output = self.output
+                # if not os.path.exists(output):
+                #     os.makedirs(output)
+                # if self.model_name is not None:
+                #     model_folder = os.path.join(output, self.model_name)
+                # else:
+                #     model_folder = os.path.join(output, self.__class__.__name__)
+                #if not os.path.exists(model_folder):
+                #    os.makedirs(model_folder)
+                #print(f"Saving model {self.best_model} to {model_folder}")
+                #if self.best_model is not None:
+                #    self.best_model.save(
+                #        f"{model_folder}/{self.best_model.__class__.__name__}.pth"
+                #    )
+                #else:
+                #    self.logger.error("No model to save")
                 failed_trials = [
                     t for t in study.trials if t.state == optuna.trial.TrialState.FAIL
                 ]
@@ -395,45 +395,64 @@ class Tuner:
                     "failed_trials": len(failed_trials),
                     "user_attrs": study.best_trial.user_attrs,
                 }
-                with open(f"{model_folder}/best_trial.json", "w") as f:
-                    json.dump(best_trial_data, f, indent=4)
-                print(f"Trial json saved to {model_folder} in best_trial.json")
-                print(f"Model and best trial data saved to {model_folder}")
+                #with open(f"{model_folder}/best_trial.json", "w") as f:
+                #    json.dump(best_trial_data, f, indent=4)
+                #print(f"Trial json saved to {model_folder} in best_trial.json")
+                #print(f"Model and best trial data saved to {model_folder}")
                 studies_and_models.append((best_trial_data, trained_model))
                 model.trainedTime = datetime.date.today()
                 model.model = trained_model
-                self.model_repository.insert_model(model)
+                self.model_repository.upsert_model(model)
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
         return studies_and_models
 
     def tune_model_x(self, model: Model):
         trained_model: ForecastingModel = None
+        matched_cls = next(
+            (
+                cls
+                for name, cls in vars(models).items()
+                if inspect.isclass(cls)
+                and issubclass(cls, ForecastingModel)
+                and not inspect.isabstract(cls)
+                and model.name in name
+            ),
+            None
+        )
+
+        if matched_cls is None:
+            raise ValueError(f"Model class with name '{model.name}' not found.")
+        
+        print(f"Found: {matched_cls}")
+        
+        model.model = matched_cls
+
         try:
             self.best_model = None
             self.best_score = float("inf")
             print(
                 f"Best model and score reset to {self.best_model} and {self.best_score}"
             )
-            print(f"\nTuning {model} for service {self.serviceId}\n")
+            print(f"\nTuning {model.name} for service {self.serviceId}\n")
             
             study, trained_model = self.__tune_model(model)
-            output = self.output
-            if not os.path.exists(output):
-                os.makedirs(output)
-            if self.model_name is not None:
-                model_folder = os.path.join(output, self.model_name)
-            else:
-                model_folder = os.path.join(output, self.__class__.__name__)
-            if not os.path.exists(model_folder):
-                os.makedirs(model_folder)
-            print(f"Saving model {self.best_model} to {model_folder}")
-            if self.best_model is not None:
-                self.best_model.save(
-                    f"{model_folder}/{self.best_model.__class__.__name__}.pth"
-                )
-            else:
-                self.logger.error("No model to save")
+            # output = self.output
+            # if not os.path.exists(output):
+            #     os.makedirs(output)
+            # if self.model_name is not None:
+            #     model_folder = os.path.join(output, self.model_name)
+            # else:
+            #     model_folder = os.path.join(output, self.__class__.__name__)
+            # if not os.path.exists(model_folder):
+            #     os.makedirs(model_folder)
+            # print(f"Saving model {self.best_model} to {model_folder}")
+            # if self.best_model is not None:
+            #     self.best_model.save(
+            #         f"{model_folder}/{self.best_model.__class__.__name__}.pth"
+            #     )
+            # else:
+            #     self.logger.error("No model to save")
             failed_trials = [
                 t for t in study.trials if t.state == optuna.trial.TrialState.FAIL
             ]
@@ -445,13 +464,13 @@ class Tuner:
                 "trials": len(study.trials),
                 "failed_trials": len(failed_trials),
             }
-            with open(f"{model_folder}/best_trial.json", "w") as f:
-                json.dump(best_trial_data, f, indent=4)
-            print(f"Trial json saved to {model_folder} in best_trial.json")
-            if isinstance(model, Model):
-                print(f"\nDone with: {model.name} for service {self.serviceId}\n")
-            else:
-                print(f"\nDone with {model} for service {self.serviceId}\n")
+            # with open(f"{model_folder}/best_trial.json", "w") as f:
+            #     json.dump(best_trial_data, f, indent=4)
+            # print(f"Trial json saved to {model_folder} in best_trial.json")
+            # if isinstance(model, Model):
+            #     print(f"\nDone with: {model.name} for service {self.serviceId}\n")
+            # else:
+            #     print(f"\nDone with {model} for service {self.serviceId}\n")
             model.model = trained_model
             return (best_trial_data, model)
         except Exception as err:

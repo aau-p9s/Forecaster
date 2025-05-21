@@ -21,8 +21,8 @@ def handle_missing_values(timeseries):
 
 
 def handle_negative_values(timeseries: TimeSeries):
-    """Removes entries where the values are zero"""
-    mask = timeseries.values().flatten() > 0
+    """Removes entries where the values are less than zero"""
+    mask = timeseries.values().flatten() >= 0
     filtered_series = (
         timeseries.drop_before(timeseries.time_index[mask][0]) if mask.any() else None
     )
@@ -107,7 +107,7 @@ def load_historical_data(data:Historical) -> TimeSeries:
     }
     df = pd.DataFrame(series)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
-    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', fill_missing_dates=True, freq="1min")
+    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', freq="1min")
     return final_series
 
 
