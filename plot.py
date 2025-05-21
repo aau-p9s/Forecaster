@@ -1,30 +1,31 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from darts import TimeSeries
+from ML.Darts.Utils.preprocessing import run_transformer_pipeline
 
 
 def main():
-    # Path to your CSV file
-    filepath = "../Datasets/ServerRequest1.csv"
+    filepath = "ServerRequest1.csv"
+    timeseries = TimeSeries.from_csv(filepath, time_col='timestamp', value_cols='requests', freq="min")
 
-    # Load the CSV
-    df = pd.read_csv(filepath)
+    # Store original before transformation
+    original = timeseries
 
-    # Assume the first column is time, second column is values
-    time_col = df.columns[0]
-    value_col = df.columns[1]
+    # Run preprocessing
+    transformed, missing, _ = run_transformer_pipeline(timeseries)
 
-    # Parse time column (if needed)
-    df[time_col] = pd.to_datetime(df[time_col], errors="coerce")
-    df = df.dropna(subset=[time_col])
+    # Plot side by side
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    original.plot(ax=axes[0])
+    axes[0].set_title("Original Time Series")
 
-    # Plot
-    plt.plot(df[time_col][:11520], df[value_col][:11520])
-    plt.title(f"Plot of {value_col}")
-    plt.xlabel("Time")
-    plt.ylabel("Value")
-    plt.grid(True)
-    plt.savefig("DataB4scaling.png")
+    transformed.plot(ax=axes[1])
+    axes[1].set_title("Transformed Time Series")
 
+    print(f"Missing value ratio: {missing}")
+    plt.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     main()

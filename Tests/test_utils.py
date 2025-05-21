@@ -4,6 +4,7 @@ from darts import TimeSeries
 from ML.Darts.Utils.preprocessing import load_data, run_transformer_pipeline  # Make sure to import the function correctly from your module
 import numpy as np
 import re
+from unittest.mock import MagicMock, patch
 
 # Create a sample CSV data for testing
 @pytest.fixture
@@ -106,3 +107,26 @@ def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_valu
 
     assert df_processed.values.min() >= 0, "Found values below 0, scaling failed"
     assert df_processed.values.max() <= 1, "Found values above 1, scaling failed"
+
+def test_full_transformer_pipeline(sample_timeseries_missing_values : TimeSeries):
+    mock_obj = MagicMock()
+
+    assert sample_timeseries_missing_values.pd_dataframe().isna().any().any()
+
+    with patch("ML.Darts.Utils.preprocessing.handle_negative_values", wraps=lambda ts: ts) as mock_neg, \
+         patch("ML.Darts.Utils.preprocessing.remove_outliers_zscore", wraps=lambda ts, thresh: ts) as mock_outlier, \
+         patch("ML.Darts.Utils.preprocessing.handle_missing_values", wraps=lambda ts: (ts, 0.0)) as mock_missing, \
+         patch("ML.Darts.Utils.preprocessing.denoiser", wraps=lambda ts: ts) as mock_denoiser, \
+         patch("ML.Darts.Utils.preprocessing.decompose_and_detrend", wraps=lambda ts: ts) as mock_decompose, \
+         patch("ML.Darts.Utils.preprocessing.scaler", wraps=lambda ts: (ts, MagicMock())) as mock_scaler:
+        
+        processed_ts, missing_ratio, transformer = run_transformer_pipeline(sample_timeseries_missing_values)
+        
+        mock_neg.assert_called_once()
+        mock_outlier.assert_called_once()
+        mock_missing.assert_called_once()
+        mock_denoiser.assert_called_once()
+        mock_decompose.assert_called_once()
+        mock_scaler.assert_called_once()
+
+        assert processed_ts is not None

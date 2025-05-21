@@ -11,12 +11,13 @@ from darts import TimeSeries
 import pandas as pd
 import numpy as np
 from darts.utils.missing_values import fill_missing_values
+from statsmodels.tsa.seasonal import STL
 
 from enum import Enum
 
 def handle_missing_values(timeseries):
     ratio = missing_values.missing_values_ratio(timeseries)
-    filled_series = missing_values.fill_missing_values(timeseries)
+    filled_series = fill_missing_values(timeseries)
     return (filled_series, ratio)
 
 
@@ -39,17 +40,17 @@ def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
     scaled = transformer.fit_transform(timeseries)
     return (scaled, transformer)
 
-def remove_outliers(series: TimeSeries, outlier_thresh):
-    if series is None:
-        raise ValueError("TimeSeries is None.")
-    threshold = outlier_thresh
+def remove_outliers_zscore(series: TimeSeries, threshold=3000):
     values = series.values().squeeze()
-    cleaned_values = np.where(values > threshold, np.nan, values)
-    series_with_nans = series.with_values(cleaned_values)
-    interpolated_series = fill_missing_values(series_with_nans, method="linear")
+    z_scores = (values - np.mean(values)) / np.std(values)
+    cleaned = np.where(np.abs(z_scores) > threshold, np.nan, values)
+    return series.with_values(cleaned)
 
-    return interpolated_series
-
+def decompose_and_detrend(series: TimeSeries):
+    stl = STL(series.values().flatten(), period=24)  # Example for daily seasonality
+    result = stl.fit()
+    detrended = series.with_values(result.resid)
+    return detrended
 
 def run_transformer_pipeline(
     timeseries: TimeSeries,
@@ -60,11 +61,12 @@ def run_transformer_pipeline(
     if timeseries is None:
         raise ValueError("TimeSeries is None.")
     if resample is not None:
-        timeseries.resample(resample)
+        timeseries = timeseries.resample(resample)
     timeseries = handle_negative_values(timeseries)
-    timeseries = remove_outliers(timeseries, outlier_thresh)
+    timeseries = remove_outliers_zscore(timeseries, outlier_thresh)
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
-    print("Removed missing values")
+    timeseries = denoiser(timeseries)
+    timeseries = decompose_and_detrend(timeseries)
 
     print(f"Scaling data")
     timeseries, transformer = scaler(timeseries)
