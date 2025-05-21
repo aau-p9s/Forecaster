@@ -40,7 +40,7 @@ def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
     scaled = transformer.fit_transform(timeseries)
     return (scaled, transformer)
 
-def remove_outliers_zscore(series: TimeSeries, threshold=3000):
+def remove_outliers_zscore(series: TimeSeries, threshold=3):
     values = series.values().squeeze()
     z_scores = (values - np.mean(values)) / np.std(values)
     cleaned = np.where(np.abs(z_scores) > threshold, np.nan, values)
@@ -66,7 +66,6 @@ def run_transformer_pipeline(
     timeseries = remove_outliers_zscore(timeseries, outlier_thresh)
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
     timeseries = denoiser(timeseries)
-    timeseries = decompose_and_detrend(timeseries)
 
     print(f"Scaling data")
     timeseries, transformer = scaler(timeseries)

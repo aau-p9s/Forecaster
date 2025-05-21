@@ -5,14 +5,14 @@ from ML.Darts.Utils.preprocessing import run_transformer_pipeline
 
 
 def main():
-    filepath = "ServerRequest1.csv"
-    timeseries = TimeSeries.from_csv(filepath, time_col='timestamp', value_cols='requests', freq="min")
+    filepath = "combined_output.csv"
+    timeseries = TimeSeries.from_csv(filepath, time_col='timestamp', value_cols='value', freq="min")
 
     # Store original before transformation
     original = timeseries
 
     # Run preprocessing
-    transformed, missing, _ = run_transformer_pipeline(timeseries)
+    transformed, missing, _ = run_transformer_pipeline(timeseries, outlier_thresh=2)
 
     # Plot side by side
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
