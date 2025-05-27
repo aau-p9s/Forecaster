@@ -1,4 +1,6 @@
 from os import walk
+from Database.Models import Settings
+from Database.SettingsRepository import SettingsRepository
 from Database.Utils import gen_uuid
 import pytest
 import darts.models as models
@@ -16,6 +18,9 @@ import cloudpickle as pickle
 from ML.Darts.Utils.preprocessing import run_transformer_pipeline, scaler
 from datetime import datetime
 import pandas as pd
+
+settings_id = gen_uuid()
+service_id = gen_uuid()
 
 @pytest.fixture
 def mock_db():
@@ -43,6 +48,12 @@ def model_repository(mock_db, sample_time_series:TimeSeries):
     ]
 
     return ModelRepository(mock_db)
+
+@pytest.fixture
+def settings_repository():
+    repo = MagicMock()
+    repo.get_settings.return_value = Settings.Setting(settings_id, service_id, 5, 5, 5, 5, 5, 5)
+    return repo
 
 
 @pytest.fixture
@@ -107,7 +118,7 @@ def test_naive_ensemble_model(ensemble_training_local):
     assert backtest is not None
     assert isinstance(rmse_error, float) and rmse_error >= 0
 
-def test_forecaster(forecast_repository, model_repository:ModelRepository, sample_time_series:TimeSeries):
+def test_forecaster(mock_db, forecast_repository, model_repository:ModelRepository, settings_repository, sample_time_series:TimeSeries):
     data_processed, missing_values_ratio, scaler = run_transformer_pipeline(sample_time_series)
     model_obj = NaiveSeasonal()
     model_id = gen_uuid()
@@ -115,8 +126,8 @@ def test_forecaster(forecast_repository, model_repository:ModelRepository, sampl
     model_obj.fit(data_processed[-10:])
     model = Model(model_id, "NaiveSeasonal", model_obj, service_id)
     model_repository.insert_model(model)
-    
-    forecaster = Forecaster(model.serviceId, model_repository, forecast_repository)
+
+    forecaster = Forecaster(model.serviceId, model_repository, forecast_repository, settings_repository)
     
     forecast = forecaster._predict(data_processed, 1)
 
