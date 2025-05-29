@@ -54,19 +54,22 @@ def early_stopping_opt(study, trial):
         if EarlyStoppingExceeded.early_stop_count >= EarlyStoppingExceeded.early_stop:
             raise EarlyStoppingExceeded()
 
+
 class Tuner:
     def __init__(
         self,
         serviceId,
-        model_repository:ModelRepository,
+        model_repository: ModelRepository,
         data: TimeSeries,
         forecast_period,
-        output = "output",
+        output="output",
         train_val_split=0.75,
         gpu=0,
         trials=75,
         exclude_models=[],
+        dev_mode=False,
     ):
+        self.dev_mode = dev_mode
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
         torch.set_float32_matmul_precision("medium")
@@ -81,52 +84,76 @@ class Tuner:
         # Optuna vars
         self.logger = logging.getLogger()
         os.makedirs("logs", exist_ok=True)
-        log_filename = os.path.join("logs", f"tuner_{str(serviceId)}_{datetime.now().strftime('%Y%m%d-%H%M%S')}.log")
+        log_filename = os.path.join(
+            "logs",
+            f"tuner_{str(serviceId)}_{datetime.now().strftime('%Y%m%d-%H%M%S')}.log",
+        )
         optuna.logging.get_logger("optuna").addHandler(
             logging.StreamHandler(sys.stdout)
         )
         self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(
-            logging.FileHandler(
-                log_filename, mode="w"
-            )
-        )
+        self.logger.addHandler(logging.FileHandler(log_filename, mode="w"))
         optuna.logging.enable_propagation()
 
         # Load dataset
         self.series = data
         self.forecast_period = forecast_period
         self.train_series, self.val_series = self.series.split_after(train_val_split)
-        stored_models: list[Model] = model_repository.get_all_models_by_service(serviceId)
-        self.models = [
-            Model(
-                model.modelId,
-                model.name,
-                cls,
-                model.serviceId,
-                model.scaler,
-                model.trainedTime
+        if self.model_repository is not None:
+            stored_models: list[Model] = (
+                self.model_repository.get_all_models_by_service(serviceId)
             )
-            for model in stored_models
-            for name, cls in vars(models).items()
-            if inspect.isclass(cls)
-            and issubclass(cls, ForecastingModel)
-            and not inspect.isabstract(cls)
-            and name == model.name
-        ]
+
+            self.models = [
+                Model(
+                    model.modelId,
+                    model.name,
+                    cls,
+                    model.serviceId,
+                    model.scaler,
+                    model.trainedTime,
+                )
+                for model in stored_models
+                for name, cls in vars(models).items()
+                if inspect.isclass(cls)
+                and issubclass(cls, ForecastingModel)
+                and not inspect.isabstract(cls)
+                and name == model.name
+            ]
+        else:
+            # Dynamically collect all non-abstract ForecastingModel subclasses
+            stored_models: list[ForecastingModel] = []
+            for name, cls in vars(models).items():
+                if (
+                    inspect.isclass(cls)
+                    and issubclass(cls, ForecastingModel)
+                    and not inspect.isabstract(cls)
+                ):
+                    stored_models.append(
+                        Model(
+                            modelId=gen_uuid(),
+                            modelName=name,
+                            model=cls,
+                            serviceId=self.serviceId,
+                            scaler=None,
+                            trainedTime=str(datetime.now()),
+                        )
+                    )
+        self.models = stored_models
+
         self.past_covariates = None
         self.future_covariates = None
         self.best_score = float("inf")
         self.best_model: Model = None
 
-    def __tune_model(self, model:Model):
+    def __tune_model(self, model: Model):
         if isinstance(model, Model):
             print("Is Model")
-            self.forecast_model:ForecastingModel = model.model
+            self.forecast_model: ForecastingModel = model.model
             self.model_name = model.name
         else:
             print("Is ForecastingModel")
-            self.model:ForecastingModel = model
+            self.model: ForecastingModel = model
             self.model_name = model.__name__
 
         def objective(trial):
@@ -135,7 +162,9 @@ class Tuner:
                 # Get the model parameters
                 model_class = self.forecast_model
                 model_params = model_class._get_default_model_params()
-                config = HyperParameterConfig(trial, self.forecast_model, series=self.train_series)
+                config = HyperParameterConfig(
+                    trial, self.forecast_model, series=self.train_series
+                )
                 uses_covariates = False
 
                 # Match the parameters with suggestions from HyperParameterConfig
@@ -260,7 +289,7 @@ class Tuner:
                 # Instantiate the model
                 if self.forecast_model is not None:
                     print(f"MODEL: {self.forecast_model}")
-                    model_to_train:ForecastingModel = model_class(**params)
+                    model_to_train: ForecastingModel = model_class(**params)
                 else:
                     raise Exception("Model not found")
                 print(f"MODEL PARAMS: \n{model_to_train.model_params}\n")
@@ -294,25 +323,28 @@ class Tuner:
                 if rmse_value < self.best_score:
                     self.best_score = rmse_value
                     self.best_model = model
-                    # plt.figure()
-                    # val_target.plot(label="Actual")
-                    # forecast.plot(label="Forecast")
-                    # plt.text(
-                    #     0.1,
-                    #     0.97,
-                    #     f"MAE: {mae_value}\nSMAPE: {smape_value}",
-                    #     transform=plt.gca().transAxes,
-                    #     fontsize=10,
-                    #     verticalalignment="top",
-                    #     bbox=dict(facecolor="white", alpha=0.6),
-                    # )
-                    #plt.title(f"Best forecast for {self.model_name} RMSE: {rmse_value}")
-                    #plt.legend()
-                    #plt.grid(True)
-                    #os.makedirs(f"{self.output}/figures", exist_ok=True)
-                    #plt.savefig(
-                    #    f"{self.output}/figures/{self.model_name}_{trial.number}"
-                    #)
+                    if self.dev_mode:
+                        plt.figure()
+                        val_target.plot(label="Actual")
+                        forecast.plot(label="Forecast")
+                        plt.text(
+                            0.1,
+                            0.97,
+                            f"MAE: {mae_value}\nSMAPE: {smape_value}",
+                            transform=plt.gca().transAxes,
+                            fontsize=10,
+                            verticalalignment="top",
+                            bbox=dict(facecolor="white", alpha=0.6),
+                        )
+                        plt.title(
+                            f"Best forecast for {self.model_name} RMSE: {rmse_value}"
+                        )
+                        plt.legend()
+                        plt.grid(True)
+                        os.makedirs(f"{self.output}/figures", exist_ok=True)
+                        plt.savefig(
+                            f"{self.output}/figures/{self.model_name}_{trial.number}"
+                        )
                 return rmse_value
             except EarlyStoppingExceeded:
                 raise
@@ -323,7 +355,7 @@ class Tuner:
                 return float("inf")
 
         # Create Optuna study and optimize
-        # study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.db_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
+        # study = optuna.create_study(direction="minimize", study_name=model_name + "_study", storage=self.gb_url, load_if_exists=True, pruner=optuna.pruners.PatientPruner(wrapped_pruner=None, min_delta=0.05, patience=1))
         study = optuna.create_study(
             direction="minimize",
             storage="sqlite:///model-tuning.db",
@@ -366,23 +398,25 @@ class Tuner:
                     continue
                 else:
                     study, trained_model = self.__tune_model(model)
-                print(f"\nDone with {model.name} for service {self.serviceId}\n")
-                #output = self.output
-                # if not os.path.exists(output):
-                #     os.makedirs(output)
-                # if self.model_name is not None:
-                #     model_folder = os.path.join(output, self.model_name)
-                # else:
-                #     model_folder = os.path.join(output, self.__class__.__name__)
-                #if not os.path.exists(model_folder):
-                #    os.makedirs(model_folder)
-                #print(f"Saving model {self.best_model} to {model_folder}")
-                #if self.best_model is not None:
-                #    self.best_model.save(
-                #        f"{model_folder}/{self.best_model.__class__.__name__}.pth"
-                #    )
-                #else:
-                #    self.logger.error("No model to save")
+                self.logger.info(
+                    f"\nDone with {model.name} for service {self.serviceId}\n"
+                )
+                output = self.output
+                if not os.path.exists(output):
+                    os.makedirs(output)
+                if self.model_name is not None:
+                    model_folder = os.path.join(output, self.model_name)
+                else:
+                    model_folder = os.path.join(output, self.__class__.__name__)
+                if not os.path.exists(model_folder):
+                    os.makedirs(model_folder)
+                self.logger.info(f"Saving model {self.best_model} to {model_folder}")
+                if self.best_model is not None:
+                    self.best_model.model.save(
+                        f"{model_folder}/{self.best_model.__class__.__name__}.pth"
+                    )
+                else:
+                    self.logger.error("No model to save")
                 failed_trials = [
                     t for t in study.trials if t.state == optuna.trial.TrialState.FAIL
                 ]
@@ -395,14 +429,17 @@ class Tuner:
                     "failed_trials": len(failed_trials),
                     "user_attrs": study.best_trial.user_attrs,
                 }
-                #with open(f"{model_folder}/best_trial.json", "w") as f:
-                #    json.dump(best_trial_data, f, indent=4)
-                #print(f"Trial json saved to {model_folder} in best_trial.json")
-                #print(f"Model and best trial data saved to {model_folder}")
+                with open(f"{model_folder}/best_trial.json", "w") as f:
+                    json.dump(best_trial_data, f, indent=4)
+                self.logger.info(
+                    f"Trial json saved to {model_folder} in best_trial.json"
+                )
+                self.logger.info(f"Model and best trial data saved to {model_folder}")
                 studies_and_models.append((best_trial_data, trained_model))
-                model.trainedTime = datetime.date.today()
+                model.trainedTime = str(datetime.today())
                 model.model = trained_model
-                self.model_repository.upsert_model(model)
+                if self.model_repository is not None:
+                    self.model_repository.upsert_model(model)
             except Exception as err:
                 print(f"\nError: {err=}, {type(err)=}\n")
         return studies_and_models
@@ -418,14 +455,14 @@ class Tuner:
                 and not inspect.isabstract(cls)
                 and model.name in name
             ),
-            None
+            None,
         )
 
         if matched_cls is None:
             raise ValueError(f"Model class with name '{model.name}' not found.")
-        
+
         print(f"Found: {matched_cls}")
-        
+
         model.model = matched_cls
 
         try:
@@ -435,7 +472,7 @@ class Tuner:
                 f"Best model and score reset to {self.best_model} and {self.best_score}"
             )
             print(f"\nTuning {model.name} for service {self.serviceId}\n")
-            
+
             study, trained_model = self.__tune_model(model)
             # output = self.output
             # if not os.path.exists(output):

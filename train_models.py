@@ -24,17 +24,19 @@ if __name__ == "__main__":
     input = parsed_args.input
     output = parsed_args.output
     series = load_data(input, "min")
-    series, missing_values_ratio = preprocessing.run_transformer_pipeline(
-        series, scale=False
+    series, missing_values_ratio, _ = preprocessing.run_transformer_pipeline(
+        series, resample=None
     )
     print(f"Min: {np.min(series.values())}, Max: {np.max(series.values())}\n")
     print(f"Ratio of missing values: {missing_values_ratio}\n")
     tuner = Tuner(
-        "NoServiceIdNonScaled",
+        "NoService",
+        None,
         series,
-        168,
-        trials=100,
+        120,
+        trials=75,
         output=output,
         exclude_models=exclude_models,
+        dev_mode=True,
     )
     studies_and_models = tuner.tune_all_models()
