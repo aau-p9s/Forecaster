@@ -7,9 +7,10 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository
+from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, status_codes
 
 forecasters:dict[str, Forecaster] = {}
+
 
 @api.route("/predict/<string:service_id>/<int:forecast_horizon>")
 class Predict(Resource):
@@ -29,6 +30,6 @@ class Predict(Resource):
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
-    @api.doc(params={"service_id":"your-service-id"}, responses={200: "ok"})
+    @api.doc(params={"service_id":"your-service-id"}, responses={code.status: res for res, code in status_codes.items()})
     def get(self, service_id: str, forecast_horizon: int):
-        return Response(status=200, response=str(forecasters[service_id]._process.is_alive()))
+        return status_codes[forecasters[service_id]._process.is_alive()]

@@ -7,7 +7,7 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository
+from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes
 
 trainers:dict[str, Trainer] = {}
 
@@ -30,6 +30,6 @@ class Train(Resource):
 
         return Response(status=200, response=dumps({"message":f"Training started for {service_id}"}))
 
-    @api.doc(params={"service_id":"your-service-id"}, responses={200: "ok"})
+    @api.doc(params={"service_id":"your-service-id"}, responses={code.status: res for res, code in status_codes.items()})
     def get(self, service_id: str, forecast_horizon: int):
-        return Response(status=200, response=str(trainers[service_id]._process.is_alive()))
+        return status_codes[trainers[service_id]._process.is_alive()]
