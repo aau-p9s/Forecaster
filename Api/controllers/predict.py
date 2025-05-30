@@ -13,20 +13,22 @@ forecasters:dict[str, Forecaster] = {}
 
 @api.route("/predict/<string:service_id>/<int:forecast_horizon>")
 class Predict(Resource):
-    @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 500: "something died..."})
-    def get(self, service_id:str, forecast_horizon=12):
+    @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500: "something died..."})
+    def post(self, service_id:str, forecast_horizon=12):
         historical:list[Historical] | None = historical_repository.get_by_service(UUID(service_id))
         if not historical:
             print("!!! WARNING !!! No data in historical table, this should not happen")
 
         if not service_id in forecasters:
             forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository, settings_repository)
+        elif forecasters[service_id]._process.is_alive():
+            return Response(status=200, response="Still working...")
 
         forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
 
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
-
-
-
+    @api.doc(params={"service_id":"your-service-id"}, responses={200: "ok"})
+    def get(self, service_id: str, forecast_horizon: int):
+        return Response(status=200, response=str(forecasters[service_id]._process.is_alive()))
