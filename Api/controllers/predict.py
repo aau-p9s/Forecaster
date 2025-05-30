@@ -22,7 +22,7 @@ class Predict(Resource):
         if not service_id in forecasters:
             forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository, settings_repository)
         elif forecasters[service_id]._process.is_alive():
-            return Response(status=200, response="Still working...")
+            return Response(status=202, response="Still working...")
 
         forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
 

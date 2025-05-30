@@ -18,7 +18,7 @@ class Train(Resource):
         if not service_id in trainers:
             trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)
         elif trainers[service_id]._process.is_alive():
-            return Response(status=200, response="Still working...")
+            return Response(status=202, response="Still working...")
 
         historical:list[Historical] = historical_repository.get_by_service(UUID(service_id))
         if not historical:
