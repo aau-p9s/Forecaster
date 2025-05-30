@@ -190,5 +190,6 @@ init_graph.py
 *tuner.log*
 *.db
 output
-
+new_data
 models
+*.png
