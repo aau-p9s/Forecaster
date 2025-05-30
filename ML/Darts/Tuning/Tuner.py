@@ -45,6 +45,7 @@ class EarlyStoppingExceeded(optuna.exceptions.OptunaError):
 def early_stopping_opt(study, trial):
     if EarlyStoppingExceeded.best_score is None:
         EarlyStoppingExceeded.best_score = study.best_value
+        return  # Nothing to compare with yet, so return
 
     if study.best_value < EarlyStoppingExceeded.best_score:
         EarlyStoppingExceeded.best_score = study.best_value
@@ -288,7 +289,7 @@ class Tuner:
 
                 # Instantiate the model
                 if self.forecast_model is not None:
-                    print(f"MODEL: {self.forecast_model}")
+                    print(f"MODEL: {self.forecast_model.__class__.__name__}")
                     model_to_train: ForecastingModel = model_class(**params)
                 else:
                     raise Exception("Model not found")
@@ -362,6 +363,9 @@ class Tuner:
             study_name=f"{self.serviceId}_{self.model_name}",
             load_if_exists=True,
         )
+        # Reset early stopping mechanism for new study
+        EarlyStoppingExceeded.early_stop_count = 0
+        EarlyStoppingExceeded.best_score = None
         try:
             study.optimize(
                 objective, n_trials=self.trials, callbacks=[early_stopping_opt]
@@ -372,7 +376,7 @@ class Tuner:
             return (study, model)
         except EarlyStoppingExceeded as e:
             self.logger.info("Early stopped")
-            print(
+            self.logger.info(
                 f"Study stopped due to rmse not improving for {EARLY_STOP_THRESHOLD} trials.\n"
             )
             study.set_user_attr("Early stopped", str(e))

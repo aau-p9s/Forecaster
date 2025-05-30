@@ -465,7 +465,7 @@ class HyperParameterConfig:
             # For BATS or TBATS, seasonal_periods must be a list or None
             if "BATS" in str(self.model_class) or "TBATS" in str(self.model_class):
                 seasonal_choice = trial.suggest_categorical(
-                    "seasonal_periods", [None, 7, 12, 24]
+                    "seasonal_periods", [None, 7, 12, 24, 1440]
                 )
                 parameters["seasonal_periods"] = (
                     None if seasonal_choice is None else [seasonal_choice]
@@ -473,7 +473,7 @@ class HyperParameterConfig:
             else:
                 # For other models, use a plain int
                 parameters["seasonal_periods"] = trial.suggest_categorical(
-                    "seasonal_periods", [7, 12, 24]
+                    "seasonal_periods", [7, 12, 24, 1440]
                 )
 
         if "use_arma_errors" in self.valid_params:
@@ -637,7 +637,7 @@ class HyperParameterConfig:
             )
 
         if "season_length" in self.valid_params:
-            parameters["season_length"] = trial.suggest_int("season_length", 12, 100)
+            parameters["season_length"] = trial.suggest_int("season_length", 12, 1440)
 
         if "nr_freqs_to_keep" in self.valid_params:
             parameters["nr_freqs_to_keep"] = trial.suggest_int(
@@ -721,7 +721,7 @@ class HyperParameterConfig:
                 "autoTBATS_args",
             ]
         ):
-            season_length = trial.suggest_int("season_length", 1, 100)
+            season_length = trial.suggest_int("season_length", 1, 1440)
             parameters["autotheta_args"] = [season_length]
             parameters["season_length"] = season_length
 

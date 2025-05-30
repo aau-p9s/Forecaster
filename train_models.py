@@ -30,12 +30,13 @@ if __name__ == "__main__":
     print(f"Min: {np.min(series.values())}, Max: {np.max(series.values())}\n")
     print(f"Ratio of missing values: {missing_values_ratio}\n")
     tuner = Tuner(
-        "NoService",
+        "2905_1440_week",
         None,
         series,
-        120,
+        10080,
         trials=75,
         output=output,
+        gpu=0,
         exclude_models=exclude_models,
         dev_mode=True,
     )
