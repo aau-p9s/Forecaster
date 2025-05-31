@@ -38,7 +38,7 @@ class Train(Resource):
 @api.route("/train/<string:service_id>/kill")
 class TrainKill(Resource):
 
-    @api.doc(params={"service_id": "your-service-id"}, responses={200:"killed", 400:"no trainer present"})
+    @api.doc(params={"service_id": "your-service-id"}, responses={200:"killed", 500: "No forecasters", 400:"no trainer present"})
     def get(self, service_id: str):
         if not service_id in trainers:
             return Response(status=500, response=f"error, no trainer in trainers for serviceid: {service_id}")

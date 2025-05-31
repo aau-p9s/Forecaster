@@ -37,8 +37,10 @@ class Predict(Resource):
 @api.route("/predict/<string:service_id>/kill")
 class PredictKill(Resource):
 
-    @api.doc(params={"service_id": "your-service-id"}, responses={200:"killed", 400:"no trainer present"})
+    @api.doc(params={"service_id": "your-service-id"}, responses={200:"killed", 500:"no forecasters", 400:"no forecaster present"})
     def get(self, service_id: str):
+        if not service_id in forecasters:
+            return Response(status=500, response=f"error, no forecaster in forecasters for serviceid: {service_id}")
         if not forecasters[service_id]._process.is_alive():
             return Response(status=400, response="Thread is already killed")
 
