@@ -30,7 +30,7 @@ class Predict(Resource):
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
-    @api.doc(params={"service_id":"your-service-id"}, responses={code.status: res for res, code in status_codes.items()})
+    @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
     def get(self, service_id: str, forecast_horizon: int):
         return status_codes[forecasters[service_id]._process.is_alive()]
 
