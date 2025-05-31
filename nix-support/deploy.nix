@@ -5,7 +5,7 @@ with config;
 let 
 
     dockerfile = writeText "Dockerfile" ''
-        FROM unit8/darts:latest
+        FROM unit8/darts:0.32.0
 
         WORKDIR /run 
 
