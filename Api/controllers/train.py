@@ -33,3 +33,18 @@ class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: res for res, code in status_codes.items()})
     def get(self, service_id: str, forecast_horizon: int):
         return status_codes[trainers[service_id]._process.is_alive()]
+
+
+@api.route("/train/<string:service_id>/kill")
+class TrainKill(Resource):
+
+    @api.doc(params={"service_id": "your-service-id"}, responses={200:"killed", 400:"no trainer present"})
+    def get(self, service_id: str):
+        if not service_id in trainers:
+            return Response(status=500, response=f"error, no trainer in trainers for serviceid: {service_id}")
+        if not trainers[service_id]._process.is_alive():
+            return Response(status=400, response="Thread is already killed")
+
+        trainers[service_id]._process.kill()
+
+        return Response(status=200, response="killed")
