@@ -27,8 +27,15 @@ DB_CONFIG = {
 INSERT_SQL = '''
     INSERT INTO models (id, name, bin, trainedat, serviceid)
     VALUES (%s, %s, %s, %s, %s)
-    RETURNING id
 '''
+
+def get_ids(conn):
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT id from services")
+        rows = cursor.fetchall()
+        return [row[0] for row in rows]
+
+
 
 def insert_model(conn, name, binary, service_id):
     with conn.cursor() as cur:
@@ -60,7 +67,7 @@ def main():
                 model = cloudpickle.load(f)
                 print(f"Loaded model: {model_name}")
                 binary = cloudpickle.dumps(model)
-                for s in ["1a2b3c4d-1111-2222-3333-444455556666", "2b3c4d5e-1111-2222-3333-444455556666", "3c4d5e6f-1111-2222-3333-444455556666"]:
+                for s in get_ids(conn):
                     insert_model(conn, model_name, binary, s)
         except Exception as e:
             print(f"Failed to process {model_name}: {e}")
