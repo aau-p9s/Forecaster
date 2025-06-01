@@ -1,5 +1,5 @@
 from .lib.variables import api_addr, api_port, app
-from .controllers import predict, train, tuner, models
+from .controllers import predict, train, tuner, models, status
 from .lib import models
    
 

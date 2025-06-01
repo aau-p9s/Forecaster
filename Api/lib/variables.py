@@ -1,5 +1,5 @@
 
-from flask import Flask
+from flask import Flask, Response
 from flask_restx import Api
 
 from Database.ForecastRepository import ForecastRepository
@@ -34,3 +34,7 @@ trainer_threads = []
 forecaster_threads = []
 forecasters:dict[str, dict] = {}
 trainers:dict[str, dict] = {}
+status_codes = {
+    True: Response(status=202, response=str(True)),
+    False: Response(status=200, response=str(False))
+}
