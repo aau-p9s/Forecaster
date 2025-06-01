@@ -14,18 +14,8 @@
         devShells.${system}.default = pkgs.mkShellNoCC {
 
             packages = with pkgs; [
-                (python3.withPackages (py: with py; [
-                    psycopg2
-                    ipython
-                    cloudpickle
-                    flask
-                    flask-restx
-                    optuna
-                    # unstable shit
-                    darts
+                inputs.self.packages.${system}.env
 
-
-                ]))
                 postgresql
                 (writeScriptBin "p10psql" ''
                     #!${bash}/bin/bash
@@ -44,5 +34,16 @@
                 '')
             ];
         };
+
+        packages.${system}.env = pkgs.python3.withPackages (py: with py; [
+            psycopg2
+            ipython
+            cloudpickle
+            flask
+            flask-restx
+            optuna
+            # unstable shit
+            darts
+        ]);
     };
 }
