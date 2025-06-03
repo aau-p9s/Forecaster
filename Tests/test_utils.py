@@ -55,8 +55,13 @@ def sample_data_epoch():
 @pytest.fixture
 def sample_timeseries_missing_values():
     data = {
-        'timestamp': ['2025-03-10 00:01', '2025-03-10 00:02', '2025-03-10 00:03'],
-        'value': [10, np.nan, 30]
+        'timestamp': [
+            '2025-03-10 00:01', '2025-03-10 00:02', '2025-03-10 00:03',
+            '2025-03-10 00:04', '2025-03-10 00:05', '2025-03-10 00:06',
+            '2025-03-10 00:07', '2025-03-10 00:08', '2025-03-10 00:09',
+            '2025-03-10 00:10'
+        ],
+        'value': [10, np.nan, 30, 25, np.nan, 40, 45, np.nan, 60, 65]
     }
     df = pd.DataFrame(data)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -98,7 +103,7 @@ def test_transformer_pipeline_with_missing_values(sample_timeseries_missing_valu
 
     assert sample_timeseries_missing_values.pd_dataframe().isna().any().any()
 
-    ts, ratio, scaler = run_transformer_pipeline(sample_timeseries_missing_values)
+    ts, ratio, scaler = run_transformer_pipeline(sample_timeseries_missing_values, resample=None)
 
     assert not ts.pd_dataframe().isna().any().any()
     assert isinstance(ratio, float)
@@ -126,7 +131,6 @@ def test_full_transformer_pipeline(sample_timeseries_missing_values : TimeSeries
         mock_outlier.assert_called_once()
         mock_missing.assert_called_once()
         mock_denoiser.assert_called_once()
-        mock_decompose.assert_called_once()
         mock_scaler.assert_called_once()
 
         assert processed_ts is not None

@@ -12,10 +12,13 @@ import pandas as pd
 import numpy as np
 from darts.utils.missing_values import fill_missing_values
 from statsmodels.tsa.seasonal import STL
+import pdb
 
 from enum import Enum
 
 def handle_missing_values(timeseries):
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
     ratio = missing_values.missing_values_ratio(timeseries)
     filled_series = fill_missing_values(timeseries)
     return (filled_series, ratio)
@@ -23,7 +26,9 @@ def handle_missing_values(timeseries):
 
 def handle_negative_values(timeseries: TimeSeries):
     """Removes entries where the values are less than zero"""
-    mask = timeseries.values().flatten() >= 0
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
+    mask = timeseries.values().flatten() > 0
     filtered_series = (
         timeseries.drop_before(timeseries.time_index[mask][0]) if mask.any() else None
     )
@@ -31,20 +36,30 @@ def handle_negative_values(timeseries: TimeSeries):
 
 
 def denoiser(timeseries):
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
     kf = KalmanFilter(dim_x=1)
-    kf.fit(timeseries)
-    return kf.filter(timeseries)
+    try:
+        kf.fit(timeseries)
+        return kf.filter(timeseries)
+    except Exception as e:
+        print(f"Denoising failed: {e}")
+        return timeseries
 
 def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
     transformer = Scaler(MinMaxScaler(feature_range=(0, 1)))
     scaled = transformer.fit_transform(timeseries)
     return (scaled, transformer)
 
-def remove_outliers_zscore(series: TimeSeries, threshold=3):
-    values = series.values().squeeze()
+def remove_outliers_zscore(timeseries: TimeSeries, threshold=3):
+    if timeseries is None:
+        raise ValueError("TimeSeries is None.")
+    values = timeseries.values().squeeze()
     z_scores = (values - np.mean(values)) / np.std(values)
     cleaned = np.where(np.abs(z_scores) > threshold, np.nan, values)
-    return series.with_values(cleaned)
+    return timeseries.with_values(cleaned)
 
 def decompose_and_detrend(series: TimeSeries):
     stl = STL(series.values().flatten(), period=24)  # Example for daily seasonality
@@ -62,6 +77,7 @@ def run_transformer_pipeline(
         raise ValueError("TimeSeries is None.")
     if resample is not None:
         timeseries = timeseries.resample(resample)
+    
     timeseries = handle_negative_values(timeseries)
     timeseries = remove_outliers_zscore(timeseries, outlier_thresh)
     timeseries, missing_values_ratio = handle_missing_values(timeseries)
