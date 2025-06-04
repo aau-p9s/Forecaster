@@ -20,7 +20,7 @@ class Predict(Resource):
         ] + [
             f"{id}:\tStatus:\t{'Working' if trainer._process.is_alive() else 'Finished'}\n" +
             "\n".join([
-                f"\t{name}:\r\t\t\t\t\t{status}"
+                f"\t{status}:\t{name}"
                 for name, status in trainer.model_status.items()
             ])
             for id, trainer in trainers.items()

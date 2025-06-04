@@ -18,15 +18,14 @@ import multiprocessing as mp
 
 
 class Trainer:
-    #manager = mp.Manager()
+    manager = mp.Manager()
     def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
         self.id:UUID = service_id
         self.model_repository:ModelRepository = model_repository
         self.forecast_repository:ForecastRepository = forecast_repository
         self.settings_repository:SettingsRepository = settings_repository
         self.forecaster = Forecaster(service_id, model_repository, forecast_repository, settings_repository)
-        #self.model_status = self.manager.dict()
-        self.model_status = {}
+        self.model_status = self.manager.dict()
 
     def train(self, series:Historical, horizon:int) -> None:
         self.model_status.clear()
