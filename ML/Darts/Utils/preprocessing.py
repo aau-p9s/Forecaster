@@ -105,7 +105,7 @@ def load_historical_data(data:Historical, period:int) -> TimeSeries:
         "timestamp": [datetime.fromtimestamp(value[0]) for value in data.data["data"]["result"][0]["values"]],
         "value": [float(value[1]) for value in data.data["data"]["result"][0]["values"]]
     }
-    df = pd.DataFrame(series)
+    df = pd.DataFrame(series, dtype=np.float32)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
     final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', fill_missing_dates=True, freq=f"{period}ms")
     return final_series
