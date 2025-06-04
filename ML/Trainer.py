@@ -35,9 +35,9 @@ class Trainer:
         series:TimeSeries = load_historical_data(data, period)
         preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
         train_series, validation_series = preprocessed_series.split_after(.75)
-        print(f"preprocessed_series length: {len(preprocessed_series)}")
-        print(f"mssing_value_ratio:         {missing_value_ratio}")
-        print(f"scaler:                     {scaler}")
+        print(f"preprocessed_series length: {len(preprocessed_series)}", flush=True)
+        print(f"mssing_value_ratio:         {missing_value_ratio}", flush=True)
+        print(f"scaler:                     {scaler}", flush=True)
 
         models = self.model_repository.get_all_models_by_service(self.id)
 
@@ -49,13 +49,13 @@ class Trainer:
             if model is not None:
                 self.model_repository.upsert_model(model)
 
-        print(f"Successfully fitted {len(successfully_fitted_models)}")
+        print(f"Successfully fitted {len(successfully_fitted_models)}", flush=True)
 
         self.forecaster._predict(validation_series, period)
 
 def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
     model, series = args
-    print(f"Training model: {model.name}")
+    print(f"Training model: {model.name}", flush=True)
     try:
         fitted_model = model.model.fit(series)
         #fitted_model = fit(model.model.fit, series)
