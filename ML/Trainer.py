@@ -30,10 +30,9 @@ class Trainer:
         self._process:Process = Process(target=self._train, args=[series, horizon])
         self._process.start()
 
-    def _train(self, data:Historical, horizon:int) -> None:
+    def _train(self, data:Historical, period:int) -> None:
         settings = self.settings_repository.get_settings(self.id)
-        period = timedelta(milliseconds=settings.scale_period)
-        series:TimeSeries = load_historical_data(data, int(period.total_seconds()))
+        series:TimeSeries = load_historical_data(data, period)
         preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
         train_series, validation_series = preprocessed_series.split_after(.75)
         print(f"preprocessed_series length: {len(preprocessed_series)}")
@@ -52,7 +51,7 @@ class Trainer:
 
         print(f"Successfully fitted {len(successfully_fitted_models)}")
 
-        self.forecaster._predict(validation_series, horizon)
+        self.forecaster._predict(validation_series, period)
 
 def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
     model, series = args

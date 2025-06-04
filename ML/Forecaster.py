@@ -21,19 +21,17 @@ class Forecaster:
         self.forecast_repository = forecast_repository
         self.settings_repository = settings_repository
 
-    def predict(self, series:Historical | None, horizon:int):
-        settings = self.settings_repository.get_settings(self.id)
-        period = timedelta(milliseconds=settings.scale_period)
-        self._process = Process(target=self._predict, args=[load_historical_data(series, int(period.total_seconds())) if series else None, horizon])
+    def predict(self, series:Historical | None, period:int):
+        self._process = Process(target=self._predict, args=[load_historical_data(series, period) if series else None, period])
         self._process.start()
 
-    def _predict(self, series:TimeSeries | None, horizon:int) -> Forecast:
+    def _predict(self, series:TimeSeries | None, period:int) -> Forecast:
         models = self.model_repository.get_all_models_by_service(self.id)
         forecasts:list[Forecast] = []
 
         for i, model in enumerate(models):
             try:
-                forecast = model.model.predict(horizon)
+                forecast = model.model.predict(period)
                 print("Created forecast")
                 if series:
                     forecast_rmse = rmse(series, forecast)
