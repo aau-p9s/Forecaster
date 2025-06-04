@@ -4,6 +4,7 @@ from multiprocessing import Process
 from uuid import UUID
 
 from darts import TimeSeries
+from darts.models.forecasting.forecasting_model import ForecastingModel
 
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
@@ -12,6 +13,7 @@ from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from ML.Darts.Utils.preprocessing import load_historical_data, load_json_data, run_transformer_pipeline
 from ML.Forecaster import Forecaster
+import multiprocessing as mp
 
 
 class Trainer:
@@ -37,14 +39,18 @@ class Trainer:
         print(f"scaler:                     {scaler}")
 
         models = self.model_repository.get_all_models_by_service(self.id)
-        for model in models:
-            try:
-                fitted_model = model.model.fit(train_series)
-                print("Fitted model")
-                self.model_repository.upsert_model(Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler))
-                print("Saved model")
-            except Exception as e:
-                raise e
 
+        with mp.Pool(4) as p:
+            p.map(self.train_one, [(model, train_series) for model in models])
 
         self.forecaster._predict(validation_series, horizon)
+
+    def train_one(self, args:tuple[Model, TimeSeries]) -> None:
+        model, series = args
+        try:
+            fitted_model = model.model.fit(series)
+            print("Fitted model")
+            self.model_repository.upsert_model(Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler))
+            print("Saved model")
+        except Exception as e:
+            print(e)
