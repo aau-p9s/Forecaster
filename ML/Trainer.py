@@ -8,7 +8,6 @@ from uuid import UUID
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
-from Api.controllers import status
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.SettingsRepository import SettingsRepository
