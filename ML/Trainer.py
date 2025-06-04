@@ -13,9 +13,9 @@ from Database.SettingsRepository import SettingsRepository
 from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from ML.Darts.Utils.preprocessing import load_historical_data, load_json_data, run_transformer_pipeline
+from ML.Darts.Utils.timeout import timeout
 from ML.Forecaster import Forecaster
 import multiprocessing as mp
-import signal
 
 
 class Trainer:
@@ -66,18 +66,6 @@ def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
         return None
 
 
-def signal_handler(arg1, arg2):
-    raise RuntimeError("Timed out!")
-
-def timeout(f, time=300):
-    def wrapper(*kwargs):
-        signal.signal(signal.SIGALRM, signal_handler)
-        signal.alarm(time)
-        try:
-            return f(*kwargs)
-        except RuntimeError as e:
-            return None
-    return wrapper
 
 @timeout
 def fit(fit_method, arg):
