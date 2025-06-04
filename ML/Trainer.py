@@ -41,16 +41,20 @@ class Trainer:
         models = self.model_repository.get_all_models_by_service(self.id)
 
         with mp.Pool(4) as p:
-            p.map(self.train_one, [(model, train_series) for model in models])
+            fitted_models = p.map(train_one, [(model, train_series) for model in models])
+
+        for model in filter(lambda model: model is not None, fitted_models):
+            self.model_repository.upsert_model(model)
 
         self.forecaster._predict(validation_series, horizon)
 
-    def train_one(self, args:tuple[Model, TimeSeries]) -> None:
-        model, series = args
-        try:
-            fitted_model = model.model.fit(series)
-            print("Fitted model")
-            self.model_repository.upsert_model(Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler))
-            print("Saved model")
-        except Exception as e:
-            print(e)
+def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
+    model, series = args
+    try:
+        fitted_model = model.model.fit(series)
+        print("Fitted model")
+        print("Saved model")
+        return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
+    except Exception as e:
+        print(e)
+        return None

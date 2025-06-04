@@ -33,7 +33,7 @@ class Forecaster:
         models = self.model_repository.get_all_models_by_service(self.id)
 
         with mp.Pool(4) as p:
-            forecasts = p.map(self.predict_once, [(model, i, series, horizon) for i, model in enumerate(models)])
+            forecasts = p.map(predict_one, [(model, i, series, horizon) for i, model in enumerate(models)])
 
         print(f"Forecasts count: {len(forecasts)}")
         forecast = min(forecasts, key=lambda x: x is not None and x.error)
@@ -41,19 +41,19 @@ class Forecaster:
         self.forecast_repository.upsert_forecast(forecast, self.id)
         return forecast
 
-    def predict_once(self, args:tuple[Model, int, TimeSeries | None, int]) -> Forecast | None:
-        model, i, series, horizon = args
-        try:
-            forecast = model.model.predict(horizon)
-            print("Created forecast")
-            if series:
-                forecast_rmse = rmse(series, forecast)
-                print("Calculated RMSE")
-            else:
-                forecast_rmse = i
-            return Forecast(model.modelId, forecast, forecast_rmse)
+def predict_one(args:tuple[Model, int, TimeSeries | None, int]) -> Forecast | None:
+    model, i, series, horizon = args
+    try:
+        forecast = model.model.predict(horizon)
+        print("Created forecast")
+        if series:
+            forecast_rmse = rmse(series, forecast)
+            print("Calculated RMSE")
+        else:
+            forecast_rmse = i
+        return Forecast(model.modelId, forecast, forecast_rmse)
 
-            print("saved forecast for comparison...")
-        except Exception as e:
-            print(f"Model failed, continuing no next model: {e}")
-            return None
+        print("saved forecast for comparison...")
+    except Exception as e:
+        print(f"Model failed, continuing no next model: {e}")
+        return None
