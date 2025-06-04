@@ -1,11 +1,11 @@
 from datetime import date, datetime
 from time import time
 from uuid import UUID
-import cloudpickle as pickle
 from Database.dbhandler import DbConnection
 import psycopg2
 from Database.Utils import gen_uuid
 from Database.Models.Model import Model
+import darts
 
 class ModelRepository:
     def __init__(self, db: DbConnection):
@@ -15,13 +15,14 @@ class ModelRepository:
         rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
-        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId) for row in rows]
+         
+        return [Model(UUID(row[0]), row[1], darts.timeseries.pickle.load(row[2]), serviceId) for row in rows]
 
     def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
         rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
+            modelObj = darts.timeseries.pickle.load(row[2])
             return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
     
@@ -29,7 +30,7 @@ class ModelRepository:
         rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
+            modelObj = darts.timeseries.pickle.load(row[2])
             return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
 
