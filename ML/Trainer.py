@@ -57,7 +57,8 @@ def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
     model, series = args
     print(f"Training model: {model.name}", flush=True)
     try:
-        fitted_model = fit(model.model.fit, series)
+        fitted_model = model.model.fit(series)
+        #fitted_model = fit(model.model.fit, series)
         print("Fitted model", flush=True)
         print("Saved model", flush=True)
         return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
