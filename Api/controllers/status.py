@@ -10,17 +10,14 @@ from Api.controllers.train import trainers
 class Predict(Resource):
     @api.doc(responses={200:"ok"})
     def get(self):
-        nl = "\n"
-        t = "\t"
-        return Response(status=200, response=f"""
-            *** FORECASTERS ***
-            {nl.join([
-                f"{id}:{t}Status:{t}{'Working' if forecaster._process.is_alive() else 'Finished'}"
-                for id, forecaster in forecasters.items()
-            ])}
-            *** TRAINERS ***
-            {nl.join([
-                f"{id}:{t}Status:{t}{'Working' if trainer._process.is_alive() else 'Finished'}"
-                for id, trainer in trainers.items()
-            ])}
-        """)
+        return Response(status=200, response="\n".join([
+            "*** FORECASTERS ***"
+        ] + [
+            f"{id}:\tStatus:\t{'Working' if forecaster._process.is_alive() else 'Finished'}"
+            for id, forecaster in forecasters.items()
+        ] + [
+            "*** TRAINERS ***"
+        ] + [
+            f"{id}:\tStatus:\t{'Working' if trainer._process.is_alive() else 'Finished'}"
+            for id, trainer in trainers.items()
+        ]))
