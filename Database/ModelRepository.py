@@ -1,37 +1,58 @@
-from datetime import date, datetime
-from time import time
+from datetime import datetime
+from pickle import UnpicklingError
+import tempfile
 from uuid import UUID
 import cloudpickle as pickle
+from darts.models.forecasting.forecasting_model import ForecastingModel
 from Database.dbhandler import DbConnection
 import psycopg2
 from Database.Utils import gen_uuid
 from Database.Models.Model import Model
+import torch
+from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
+
+class PositiveGaussianLikelihood(GaussianLikelihood):
+    def forward(self, *args, **kwargs):
+        result = super().forward(*args, **kwargs)
+
+        # Ensure that std is always non-negative before taking the exp
+        if torch.any(result.std < 0):
+            result.std = torch.abs(result.std)  # Take absolute value to prevent negative std
+
+        result.std = torch.exp(result.std)  # Ensures a positive std after exp
+        return result
 
 class ModelRepository:
     def __init__(self, db: DbConnection):
         self.db = db
 
     def get_all_models_by_service(self, serviceId:UUID) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
+        rows = self.db.execute_get('SELECT id, name, bin, ckpt from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
         
-        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId) for row in rows if loadable(row[2])]
+        models = []
+        for row in rows:
+            try:
+                models.append(Model(UUID(row[0]), row[1], load_model(row[1], row[2], row[3]), serviceId))
+            except UnpicklingError as e:
+                print(f"Model failed to load {e}")
+        return models
 
     def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
+        rows = self.db.execute_get('SELECT id, name, bin, ckpt FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
+            modelObj = load_model(row[1], row[2], row[3])
             return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
     
     def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
+        rows = self.db.execute_get('SELECT id, name, bin, ckpt FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
         if len(rows) > 0:
             row = rows[0]
-            modelObj = pickle.loads(row[2])
+            modelObj = load_model(row[1], row[2], row[3])
             return Model(UUID(row[0]), row[1], modelObj, serviceId)
         raise psycopg2.DatabaseError
 
@@ -44,11 +65,19 @@ class ModelRepository:
     def upsert_model(self, model:Model) -> None:
         self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])
 
-def loadable(model: bytes):
-    try:
-        pickle.loads(model)
-        return True
-    except Exception as e:
-        print(f"Model {model} is not loadable ({e})")
-        return False
+def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingModel:
+    with tempfile.TemporaryDirectory() as directory:
+        if ckpt is not None:
+            with open(f"{directory}/{name}.pth.ckpt", "wb") as file:
+                file.write(ckpt)
+        with open(f"{directory}/{name}.pth", "wb") as file:
+            file.write(data)
+        try:
+            return torch.load(f"{directory}/{name}.pth", weights_only=False, map_location="cpu")
+        except:
+            try:
+                return ForecastingModel.load(f"{directory}/{name}.pth")
+            except:
+                raise UnpicklingError
+        
 
