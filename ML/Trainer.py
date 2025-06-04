@@ -14,6 +14,7 @@ from Database.Models.Model import Model
 from ML.Darts.Utils.preprocessing import load_historical_data, load_json_data, run_transformer_pipeline
 from ML.Forecaster import Forecaster
 import multiprocessing as mp
+import signal
 
 
 class Trainer:
@@ -43,18 +44,41 @@ class Trainer:
         with mp.Pool(4) as p:
             fitted_models = p.map(train_one, [(model, train_series) for model in models])
 
-        for model in filter(lambda model: model is not None, fitted_models):
-            self.model_repository.upsert_model(model)
+        successfully_fitted_models = list(filter(lambda model: model is not None, fitted_models))
+        for model in successfully_fitted_models:
+            if model is not None:
+                self.model_repository.upsert_model(model)
+
+        print(f"Successfully fitted {len(successfully_fitted_models)}")
 
         self.forecaster._predict(validation_series, horizon)
 
 def train_one(args:tuple[Model, TimeSeries]) -> Model | None:
     model, series = args
+    print(f"Training model: {model.name}")
     try:
-        fitted_model = model.model.fit(series)
+        fitted_model = fit(model.model.fit, series)
         print("Fitted model")
         print("Saved model")
         return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
     except Exception as e:
         print(e)
         return None
+
+
+def signal_handler(arg1, arg2):
+    raise RuntimeError("Timed out!")
+
+def timeout(f, time=300):
+    def wrapper():
+        signal.signal(signal.SIGALRM, signal_handler)
+        signal.alarm(time)
+        try:
+            return f()
+        except RuntimeError as e:
+            return None
+    return wrapper
+
+@timeout
+def fit(fit_method, arg):
+    return fit_method(arg)
