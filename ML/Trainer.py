@@ -1,5 +1,6 @@
 
 
+from datetime import timedelta
 from multiprocessing import Process
 from uuid import UUID
 
@@ -31,8 +32,8 @@ class Trainer:
 
     def _train(self, data:Historical, horizon:int) -> None:
         settings = self.settings_repository.get_settings(self.id)
-        period = settings.scale_period
-        series:TimeSeries = load_historical_data(data, period)
+        period = timedelta(milliseconds=settings.scale_period)
+        series:TimeSeries = load_historical_data(data, int(period.total_seconds()))
         preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
         train_series, validation_series = preprocessed_series.split_after(.75)
         print(f"preprocessed_series length: {len(preprocessed_series)}")

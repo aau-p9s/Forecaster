@@ -1,3 +1,4 @@
+from datetime import timedelta
 from multiprocessing import Process
 import traceback
 from uuid import UUID
@@ -22,8 +23,8 @@ class Forecaster:
 
     def predict(self, series:Historical | None, horizon:int):
         settings = self.settings_repository.get_settings(self.id)
-        period = settings.scale_period
-        self._process = Process(target=self._predict, args=[load_historical_data(series, period) if series else None, horizon])
+        period = timedelta(milliseconds=settings.scale_period)
+        self._process = Process(target=self._predict, args=[load_historical_data(series, int(period.total_seconds())) if series else None, horizon])
         self._process.start()
 
     def _predict(self, series:TimeSeries | None, horizon:int) -> Forecast:
