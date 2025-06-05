@@ -43,6 +43,7 @@ class ModelRepository:
             try:
                 models.append(Model(UUID(row[0]), row[1], load_model(row[1], row[2], row[3]), serviceId))
             except UnpicklingError as e:
+                traceback.print_exception(e)
                 print(f"Model {row[1]} failed to load {e}")
         return models
 
