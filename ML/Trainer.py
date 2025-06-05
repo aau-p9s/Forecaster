@@ -58,7 +58,8 @@ class Trainer:
                 print(f"something about model: {fitted_model.model}")
                 self.model_repository.upsert_model(fitted_model)
             except Exception as e:
-                self.model_status[model.name] = self.manager.dict({ "message": "failed", "error": f"{e}" })
+                self.model_status[model.name]["message"] = "failed"
+                self.model_status[model.name]["error"] = f"{e}"
                 print(e)
 
         print("Finished training", flush=True)
