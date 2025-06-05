@@ -32,7 +32,7 @@ class Forecaster:
         for i, model in enumerate(models):
             try:
                 print(f"Predicting for period: {period}", flush=True)
-                forecast = model.model.predict(period)
+                forecast = model.model.predict(period*60)
                 print("Created forecast", flush=True)
                 if series:
                     forecast_rmse = rmse(series, forecast)
