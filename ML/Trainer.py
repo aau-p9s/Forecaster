@@ -43,7 +43,7 @@ class Trainer:
 
         models = self.model_repository.get_all_models_by_service(self.id)
         for model in models:
-            self.model_status[model.name] = { "message": "working", "error": None, "start_time": None, "end_time": None }
+            self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
 
         for model in models:
             try:
@@ -54,9 +54,10 @@ class Trainer:
                     raise RuntimeError(f"Error, {fitted_model.name} is None")
                 self.model_status[model.name]["message"] = "finished"
                 self.model_status[model.name]["end_time"] = time()
+                print("Saving model...")
                 self.model_repository.upsert_model(fitted_model)
             except Exception as e:
-                self.model_status[model.name] = { "message": "failed", "error": f"{e}" }
+                self.model_status[model.name] = self.manager.dict({ "message": "failed", "error": f"{e}" })
                 print(e)
 
         print("Finished training", flush=True)
