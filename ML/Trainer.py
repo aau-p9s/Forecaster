@@ -68,7 +68,7 @@ class Trainer:
             self.model_repository.upsert_model(fitted_model)
             self.model_status[fitted_model.name]["message"] = "finished"
 
-@timeout
+@timeout()
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
     try:
         print(f"Training {model.name}", flush=True)
