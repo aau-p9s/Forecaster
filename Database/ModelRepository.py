@@ -79,7 +79,7 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingMo
         with open(f"{directory}/{name}.pth", "wb") as file:
             file.write(data)
         try:
-            model = TorchForecastingModel.load(f"{directory}/{name}.pth", weights_only=False, map_location= 'cuda' if enable_gpu else "cpu")
+            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location= 'cuda' if enable_gpu else "cpu")
             if not enable_gpu:
                 model.to_cpu()
         except Exception as e1:
