@@ -7,6 +7,7 @@ import traceback
 from uuid import UUID
 
 from darts import TimeSeries
+from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
@@ -73,7 +74,10 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
     try:
         print(f"Training {model.name}", flush=True)
         model_status[model.name]["start_time"] = time()
-        fitted_model = model.model.fit(series)
+        if isinstance(model.model, TorchForecastingModel):
+            fitted_model = model.model.fit(series, dataloader_kwargs={ "num_workers": 12 })
+        else:
+            fitted_model = model.model.fit(series)
         return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
 
     except Exception as e:
