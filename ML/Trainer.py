@@ -48,9 +48,6 @@ class Trainer:
         for model in models:
             self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
 
-        #with mp.Pool(4) as p:
-        #    fitted_models = p.starmap(train_model, [(model, train_series, self.model_status) for model in models])
-
         fitted_models = []
         for model in models:
             fitted_models.append(train_model(model, train_series, self.model_status))
@@ -71,12 +68,12 @@ class Trainer:
             self.model_repository.upsert_model(fitted_model)
             self.model_status[fitted_model.name]["message"] = "finished"
 
-#@timeout
+@timeout
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
     try:
         print(f"Training {model.name}", flush=True)
         model_status[model.name]["start_time"] = time()
-        fitted_model = _timeout(model.model.fit, series)
+        fitted_model = model.model.fit(series)
         return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
 
     except Exception as e:
