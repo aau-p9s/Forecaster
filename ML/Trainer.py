@@ -52,7 +52,7 @@ class Trainer:
                 self.model_status[model.name]["start_time"] = time()
                 fitted_model = self.train_model(model, train_series)
                 if fitted_model is None:
-                    raise RuntimeError(f"Error, {fitted_model.name} is None")
+                    raise RuntimeError(f"Error, {model.name} is None, probably timed out")
                 self.model_status[model.name]["message"] = "finished"
                 self.model_status[model.name]["end_time"] = time()
                 print("Saving model...", flush=True)
