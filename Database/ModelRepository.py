@@ -71,9 +71,11 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0)
             file.write(data)
         try:
             device = torch.device(f"cuda:{gpu_id}" if enable_gpu else "cpu")
-            model = TorchForecastingModel.load(f"{directory}/{name}.pth", device=device)
+            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location=device)
             if not enable_gpu:
                 model.to_cpu()
+            else:
+                model.pl_module_params = { "accelerator": "gpu", "devices": gpu_id }
         except Exception as e1:
             try:
                 model = ForecastingModel.load(f"{directory}/{name}.pth")
