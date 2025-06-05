@@ -12,6 +12,9 @@ def timeout(time=train_timeout):
                 signal.alarm(time)
             try:
                 return f(*args, **kwargs)
+            except Exception as e:
+                print(e)
+                print("fuck...")
             finally:
                 if not time == -1:
                     signal.alarm(0)
