@@ -31,6 +31,7 @@ class Forecaster:
 
         for i, model in enumerate(models):
             try:
+                print(f"Predicting for period: {period}")
                 forecast = model.model.predict(period)
                 print("Created forecast")
                 if series:
