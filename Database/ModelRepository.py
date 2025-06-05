@@ -11,6 +11,7 @@ from Database.Models.Model import Model
 import torch
 from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
+from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 
 class PositiveGaussianLikelihood(GaussianLikelihood):
     def forward(self, *args, **kwargs):
@@ -73,11 +74,13 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingMo
         with open(f"{directory}/{name}.pth", "wb") as file:
             file.write(data)
         try:
-            return torch.load(f"{directory}/{name}.pth", weights_only=False, map_location="cpu")
+            model = torch.load(f"{directory}/{name}.pth", weights_only=False, map_location="cpu")
         except:
             try:
-                return ForecastingModel.load(f"{directory}/{name}.pth")
+                model = ForecastingModel.load(f"{directory}/{name}.pth")
             except:
                 raise UnpicklingError
-        
+        if isinstance(model, TorchForecastingModel):
+            model.to_cpu()
+        return model 
 
