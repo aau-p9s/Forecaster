@@ -62,7 +62,7 @@ class Trainer:
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
 
-@timeout()
+@timeout
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
     try:
         print(f"Training {model.name}", flush=True)
