@@ -13,13 +13,13 @@ def timeout(time=train_timeout):
                 signal.alarm(time)
             try:
                 return f(*args, **kwargs)
-            except RuntimeError:
-                pass
+            except RuntimeError as e:
+                raise e
             except Exception as e:
                 traceback.print_exc()
+                raise e
             finally:
                 if not time == -1:
                     signal.alarm(0)
-            raise RuntimeError("????? We should have returned by now?????")
         return wrapper
     return outer_wrapper
