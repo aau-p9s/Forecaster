@@ -47,7 +47,7 @@ class Trainer:
             self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
 
         with mp.Pool(4) as p:
-            fitted_models = p.starmap(self.train_model, [(model, train_series) for model in models])
+            fitted_models = p.starmap(train_model, [(model, train_series, self.model_status) for model in models])
 
         for fitted_model in fitted_models:
             if fitted_model is None:
@@ -62,18 +62,18 @@ class Trainer:
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
 
-    @timeout()
-    def train_model(self, model: Model, series: TimeSeries) -> Model | None:
-        try:
-            print(f"Training {model.name}", flush=True)
-            self.model_status[model.name]["start_time"] = time()
-            fitted_model = Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
-            if fitted_model is None:
-                raise RuntimeError(f"Error, {model.name} is None, probably timed out")
+@timeout()
+def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
+    try:
+        print(f"Training {model.name}", flush=True)
+        model_status[model.name]["start_time"] = time()
+        fitted_model = Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
+        if fitted_model is None:
+            raise RuntimeError(f"Error, {model.name} is None, probably timed out")
 
-        except Exception as e:
-            self.model_status[model.name]["end_time"] = time()
-            self.model_status[model.name]["message"] = "failed"
-            self.model_status[model.name]["error"] = f"{e}"
-            traceback.print_exc()
-            return None
+    except Exception as e:
+        model_status[model.name]["end_time"] = time()
+        model_status[model.name]["message"] = "failed"
+        model_status[model.name]["error"] = f"{e}"
+        traceback.print_exc()
+        return None
