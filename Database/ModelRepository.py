@@ -12,6 +12,7 @@ import torch
 from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
+import traceback
 
 from Utils.getEnv import getEnv
 
@@ -81,10 +82,12 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingMo
             model = TorchForecastingModel.load(f"{directory}/{name}.pth", weights_only=False, map_location= 'cuda' if enable_gpu else "cpu")
             if not enable_gpu:
                 model.to_cpu()
-        except:
+        except Exception as e1:
             try:
                 model = ForecastingModel.load(f"{directory}/{name}.pth")
-            except:
+            except Exception as e2:
+                traceback.print_exception(e1)
+                traceback.print_exception(e2)
                 raise UnpicklingError
         return model 
 
