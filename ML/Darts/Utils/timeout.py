@@ -10,9 +10,6 @@ def timeout(time=train_timeout):
             if not train_timeout == -1:
                 signal.signal(signal.SIGALRM, signal_handler)
                 signal.alarm(time)
-            try:
-                return f(*kwargs)
-            except RuntimeError as e:
-                return None
+            return f(*kwargs)
         return wrapper
     return outer_wrapper
