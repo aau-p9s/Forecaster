@@ -5,20 +5,23 @@ import traceback
 def signal_handler(arg1, arg2):
     raise RuntimeError("Timed out!")
 
+def _timeout(f, *args, **kwargs):
+    if not train_timeout == -1:
+        signal.signal(signal.SIGALRM, signal_handler)
+        signal.alarm(train_timeout)
+    try:
+        return f(*args, **kwargs)
+    except RuntimeError as e:
+        raise e
+    except Exception as e:
+        traceback.print_exc()
+        raise e
+    finally:
+        if not train_timeout == -1:
+            signal.alarm(0)
+
 def timeout(f):
     def wrapper(*args, **kwargs):
-        if not train_timeout == -1:
-            signal.signal(signal.SIGALRM, signal_handler)
-            signal.alarm(train_timeout)
-        try:
-            return f(*args, **kwargs)
-        except RuntimeError as e:
-            raise e
-        except Exception as e:
-            traceback.print_exc()
-            raise e
-        finally:
-            if not train_timeout == -1:
-                signal.alarm(0)
-    return wrapper
+        return _timeout(f=f, *args, **kwargs)
 
+    return wrapper

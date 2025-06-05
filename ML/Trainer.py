@@ -14,7 +14,7 @@ from Database.SettingsRepository import SettingsRepository
 from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_pipeline
-from ML.Darts.Utils.timeout import timeout
+from ML.Darts.Utils.timeout import timeout, _timeout
 from ML.Forecaster import Forecaster
 import multiprocessing as mp
 
@@ -67,9 +67,8 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
     try:
         print(f"Training {model.name}", flush=True)
         model_status[model.name]["start_time"] = time()
-        fitted_model = Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
-        if fitted_model is None:
-            raise RuntimeError(f"Error, {model.name} is None, probably timed out")
+        fitted_model = _timeout(model.model.fit(series))
+        return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
 
     except Exception as e:
         model_status[model.name]["end_time"] = time()
