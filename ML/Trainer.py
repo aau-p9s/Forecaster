@@ -46,7 +46,9 @@ class Trainer:
         print(f"mssing_value_ratio:         {missing_value_ratio}", flush=True)
         print(f"scaler:                     {scaler}", flush=True)
 
+        print("Getting models", flush=True)
         models = self.model_repository.get_all_models_by_service(self.id, gpu_id=self.gpu_id)
+        print("Got models", flush=True)
         for model in models:
             self.model_status[model.name] = self.manager.dict({ "message": "waiting", "error": None, "start_time": None, "end_time": None })
 
