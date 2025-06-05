@@ -3,6 +3,7 @@
 from multiprocessing import Process
 from multiprocessing.managers import DictProxy
 from time import time
+import traceback
 from uuid import UUID
 
 from darts import TimeSeries
@@ -60,7 +61,7 @@ class Trainer:
             except Exception as e:
                 self.model_status[model.name]["message"] = "failed"
                 self.model_status[model.name]["error"] = f"{e}"
-                print(e)
+                traceback.print_exc()
 
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
