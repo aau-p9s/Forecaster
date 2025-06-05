@@ -41,7 +41,8 @@ class Forecaster:
                 forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
                 print("saved forecast for comparison...")
             except Exception as e:
-                print(f"Model failed, continuing no next model: {e}")
+                traceback.print_exc()
+                print(f"Model {model.name} failed, continuing no next model: {e}")
 
         print(f"Forecasts count: {len(forecasts)}")
         forecast = min(forecasts, key=lambda x: x.error)
