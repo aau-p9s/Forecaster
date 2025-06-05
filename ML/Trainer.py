@@ -2,6 +2,7 @@
 
 from multiprocessing import Process
 from multiprocessing.managers import DictProxy
+from time import time
 from uuid import UUID
 
 from darts import TimeSeries
@@ -42,13 +43,15 @@ class Trainer:
 
         models = self.model_repository.get_all_models_by_service(self.id)
         for model in models:
-            self.model_status[model.name] = { "message": "working", "error": None }
+            self.model_status[model.name] = { "message": "working", "error": None, "start_time": None, "end_time": None }
 
         for model in models:
             try:
                 print(f"Training {model.name}", flush=True)
+                self.model_status[model.name]["start_time"] = time()
                 fitted_model = self.train_model(model, train_series)
-                self.model_status[model.name] = { "message": "finished", "error": None }
+                self.model_status[model.name]["message"] = "finished"
+                self.model_status[model.name]["end_time"] = time()
                 self.model_repository.upsert_model(fitted_model)
             except Exception as e:
                 self.model_status[model.name] = { "message": "failed", "error": f"{e}" }
