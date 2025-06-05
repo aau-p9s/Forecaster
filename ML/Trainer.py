@@ -68,7 +68,7 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
     try:
         print(f"Training {model.name}", flush=True)
         model_status[model.name]["start_time"] = time()
-        fitted_model = _timeout(model.model.fit(series))
+        fitted_model = _timeout(model.model.fit, series)
         return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
 
     except Exception as e:
