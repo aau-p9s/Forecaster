@@ -48,7 +48,11 @@ class Trainer:
 
         #with mp.Pool(4) as p:
         #    fitted_models = p.starmap(train_model, [(model, train_series, self.model_status) for model in models])
-        fitted_models = map(lambda args: train_model(args[0], args[1], args[2]), [(model, train_series, self.model_status) for model in models])
+
+        fitted_models = []
+        for model in models:
+            fitted_models.append(train_model(model, train_series, self.model_status))
+            self.model_status[model.name]["message"] = "finished training"
 
         for fitted_model in fitted_models:
             if fitted_model is None:
