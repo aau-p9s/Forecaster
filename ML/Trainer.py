@@ -56,7 +56,6 @@ class Trainer:
 
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
-        self.model_status["finished"] = True
         self.status.set("Idle")
 
         for fitted_model in fitted_models:

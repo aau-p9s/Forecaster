@@ -17,7 +17,7 @@ class Model:
         self.scaler = scaler
 
     def get_binary(self):
-        with tempfile.TemporaryDirectory("/dev/shm") as directory:
+        with tempfile.TemporaryDirectory(dir="/dev/shm") as directory:
             with open(f"{directory}/model.pth", "wb") as file:
                 self.model.save(file)
             with open(f"{directory}/model.pth", "rb") as file:
