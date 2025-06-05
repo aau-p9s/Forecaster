@@ -16,7 +16,7 @@ class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500:"Something ML died!!!!"})
     def post(self, service_id:str, forecast_horizon=12):
         services = service_repository.get_all_services()
-        if not service_id in [service.id for service in services]:
+        if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
         if not service_id in trainers:
             trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)

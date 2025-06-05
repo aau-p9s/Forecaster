@@ -17,7 +17,7 @@ class Predict(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500: "something died..."})
     def post(self, service_id:str, forecast_horizon=12):
         services = service_repository.get_all_services()
-        if not service_id in [service.id for service in services]:
+        if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
         historical:list[Historical] | None = historical_repository.get_by_service(UUID(service_id))
         if not historical:
