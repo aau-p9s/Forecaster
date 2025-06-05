@@ -71,16 +71,12 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0)
             file.write(data)
         try:
             device = torch.device(f"cuda:{gpu_id}" if enable_gpu else "cpu")
-            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location=device)
+            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location=device, pl_trainer_kwargs={
+                "accelerator": "gpu",
+                "devices": [gpu_id]
+            })
             if not enable_gpu:
                 model.to_cpu()
-            else:
-                model.trainer_params['devices'] = [gpu_id]
-                # assert model parameters
-                if model.model is not None:
-                    assert model.model.trainer.accelerator == "gpu"
-                    assert model.model.device == f"cuda:{gpu_id}"
-                    assert model.model.trainer.devices == [gpu_id]
         except Exception as e1:
             try:
                 model = ForecastingModel.load(f"{directory}/{name}.pth")
