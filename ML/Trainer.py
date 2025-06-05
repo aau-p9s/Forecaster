@@ -46,28 +46,34 @@ class Trainer:
         for model in models:
             self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
 
-        for model in models:
-            try:
-                print(f"Training {model.name}", flush=True)
-                self.model_status[model.name]["start_time"] = time()
-                fitted_model = self.train_model(model, train_series)
-                if fitted_model is None:
-                    raise RuntimeError(f"Error, {model.name} is None, probably timed out")
-                self.model_status[model.name]["message"] = "saving"
-                self.model_status[model.name]["end_time"] = time()
-                print("Saving model...", flush=True)
-                print(f"something about model: {fitted_model.model}")
-                self.model_repository.upsert_model(fitted_model)
-                self.model_status[model.name]["message"] = "finished"
-            except Exception as e:
-                self.model_status[model.name]["end_time"] = time()
-                self.model_status[model.name]["message"] = "failed"
-                self.model_status[model.name]["error"] = f"{e}"
-                traceback.print_exc()
+        with mp.Pool(4) as p:
+            fitted_models = p.starmap(self.train_model, [(model, train_series) for model in models])
+
+        for fitted_model in fitted_models:
+            if fitted_model is None:
+                continue
+            self.model_status[fitted_model.name]["message"] = "saving"
+            self.model_status[fitted_model.name]["end_time"] = time()
+            print("Saving model...", flush=True)
+            print(f"something about model: {fitted_model.model}")
+            self.model_repository.upsert_model(fitted_model)
+            self.model_status[fitted_model.name]["message"] = "finished"
 
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
 
     @timeout()
-    def train_model(self, model: Model, series: TimeSeries) -> Model:
-        return Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
+    def train_model(self, model: Model, series: TimeSeries) -> Model | None:
+        try:
+            print(f"Training {model.name}", flush=True)
+            self.model_status[model.name]["start_time"] = time()
+            fitted_model = Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
+            if fitted_model is None:
+                raise RuntimeError(f"Error, {model.name} is None, probably timed out")
+
+        except Exception as e:
+            self.model_status[model.name]["end_time"] = time()
+            self.model_status[model.name]["message"] = "failed"
+            self.model_status[model.name]["error"] = f"{e}"
+            traceback.print_exc()
+            return None
