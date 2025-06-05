@@ -6,10 +6,14 @@ def signal_handler(arg1, arg2):
 
 def timeout(time=train_timeout):
     def outer_wrapper(f):
-        def wrapper(*kwargs):
-            if not train_timeout == -1:
+        def wrapper(*args, **kwargs):
+            if not time == -1:
                 signal.signal(signal.SIGALRM, signal_handler)
                 signal.alarm(time)
-            return f(*kwargs)
+            try:
+                return f(*args, **kwargs)
+            finally:
+                if not time == -1:
+                    signal.alarm(0)
         return wrapper
     return outer_wrapper
