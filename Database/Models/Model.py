@@ -1,5 +1,5 @@
 import datetime
-import tempfile
+import io
 from uuid import UUID
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler
@@ -16,9 +16,11 @@ class Model:
         self.scaler = scaler
 
     def get_binary(self):
-        temporary_dir = tempfile.mkdtemp(dir="/dev/shm")
+        file = io.BytesIO()
+        writer = io.BufferedWriter(file)
+        self.model.save(writer)
+        writer.flush()
+        file.seek(0)
+        reader = io.BufferedReader(file)
+        return reader.read()
         
-        self.model.save(f"{temporary_dir}/model.pth")
-        
-        with open(f"{temporary_dir}/model.pth", "rb") as file:
-            return file.read()
