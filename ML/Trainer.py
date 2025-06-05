@@ -14,7 +14,7 @@ from Database.SettingsRepository import SettingsRepository
 from Database.Models.Historical import Historical
 from Database.Models.Model import Model
 from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_pipeline
-from ML.Darts.Utils.timeout import timeout, _timeout
+from ML.Darts.Utils.timeout import timeout
 from ML.Forecaster import Forecaster
 import multiprocessing as mp
 
