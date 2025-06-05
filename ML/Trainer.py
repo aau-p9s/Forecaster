@@ -54,7 +54,8 @@ class Trainer:
                     raise RuntimeError(f"Error, {fitted_model.name} is None")
                 self.model_status[model.name]["message"] = "finished"
                 self.model_status[model.name]["end_time"] = time()
-                print("Saving model...")
+                print("Saving model...", flush=True)
+                print(f"something about model: {fitted_model.model}")
                 self.model_repository.upsert_model(fitted_model)
             except Exception as e:
                 self.model_status[model.name] = self.manager.dict({ "message": "failed", "error": f"{e}" })
