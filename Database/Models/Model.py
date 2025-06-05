@@ -18,8 +18,7 @@ class Model:
 
     def get_binary(self):
         with tempfile.TemporaryDirectory(dir="/dev/shm") as directory:
-            with open(f"{directory}/model.pth", "wb") as file:
-                self.model.save(file)
+            self.model.save(f"{directory}/model.pth")
             with open(f"{directory}/model.pth", "rb") as file:
                 return file.read()
         
