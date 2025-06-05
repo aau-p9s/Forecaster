@@ -31,21 +31,21 @@ class Forecaster:
 
         for i, model in enumerate(models):
             try:
-                print(f"Predicting for period: {period}")
+                print(f"Predicting for period: {period}", flush=True)
                 forecast = model.model.predict(period)
-                print("Created forecast")
+                print("Created forecast", flush=True)
                 if series:
                     forecast_rmse = rmse(series, forecast)
-                    print("Calculated RMSE")
+                    print("Calculated RMSE", flush=True)
                 else:
                     forecast_rmse = i
                 forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
-                print("saved forecast for comparison...")
+                print("saved forecast for comparison...", flush=True)
             except Exception as e:
                 traceback.print_exc()
-                print(f"Model {model.name} failed, continuing no next model: {e}")
+                print(f"Model {model.name} failed, continuing no next model: {e}", flush=True)
 
-        print(f"Forecasts count: {len(forecasts)}")
+        print(f"Forecasts count: {len(forecasts)}", flush=True)
         forecast = min(forecasts, key=lambda x: x.error)
         self.forecast_repository.upsert_forecast(forecast, self.id)
 
