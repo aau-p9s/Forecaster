@@ -50,7 +50,7 @@ class Trainer:
                 print(f"Training {model.name}", flush=True)
                 self.model_status[model.name]["start_time"] = time()
                 fitted_model = self.train_model(model, train_series)
-                if fitted_model.model is None:
+                if fitted_model is None:
                     raise RuntimeError(f"Error, {fitted_model.name} is None")
                 self.model_status[model.name]["message"] = "finished"
                 self.model_status[model.name]["end_time"] = time()
