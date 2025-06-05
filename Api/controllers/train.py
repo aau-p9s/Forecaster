@@ -7,7 +7,7 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes
+from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository
 
 trainers:dict[str, Trainer] = {}
 
@@ -15,6 +15,9 @@ trainers:dict[str, Trainer] = {}
 class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500:"Something ML died!!!!"})
     def post(self, service_id:str, forecast_horizon=12):
+        services = service_repository.get_all_services()
+        if not service_id in [service.id for service in services]:
+            return Response(status=400, response="Error, service doesn't exist")
         if not service_id in trainers:
             trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)
         elif trainers[service_id]._process.is_alive():
