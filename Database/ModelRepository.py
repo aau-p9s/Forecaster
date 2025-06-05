@@ -75,7 +75,7 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0)
             if not enable_gpu:
                 model.to_cpu()
             else:
-                model.trainer_params['devices'] = gpu_id
+                model.trainer_params['devices'] = [gpu_id]
         except Exception as e1:
             try:
                 model = ForecastingModel.load(f"{directory}/{name}.pth")
