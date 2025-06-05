@@ -41,7 +41,7 @@ class Trainer:
         self.status.set("Busy")
         series:TimeSeries = load_historical_data(data, period)
         preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
-        train_series, validation_series = preprocessed_series.split_after(.75)
+        train_series, validation_series = preprocessed_series.split_after(.80)
         print(f"preprocessed_series length: {len(preprocessed_series)}", flush=True)
         print(f"mssing_value_ratio:         {missing_value_ratio}", flush=True)
         print(f"scaler:                     {scaler}", flush=True)
