@@ -17,9 +17,9 @@ def timeout(time=train_timeout):
                 pass
             except Exception as e:
                 traceback.print_exc()
-                print("fuck...")
             finally:
                 if not time == -1:
                     signal.alarm(0)
+            raise RuntimeError("????? We should have returned by now?????")
         return wrapper
     return outer_wrapper
