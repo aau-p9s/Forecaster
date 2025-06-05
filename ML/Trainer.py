@@ -48,10 +48,11 @@ class Trainer:
 
         models = self.model_repository.get_all_models_by_service(self.id, gpu_id=self.gpu_id)
         for model in models:
-            self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
+            self.model_status[model.name] = self.manager.dict({ "message": "waiting", "error": None, "start_time": None, "end_time": None })
 
         fitted_models = []
         for model in models:
+            self.model_status[model.name]["message"] = "working"
             fitted_models.append(train_model(model, train_series.copy(), self.model_status))
             self.model_status[model.name]["message"] = "finished"
             self.model_status[model.name]["end_time"] = time()
