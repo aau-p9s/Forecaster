@@ -63,7 +63,7 @@ class ModelRepository:
         self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
 
     def upsert_model(self, model:Model) -> None:
-        self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])
+        self.db.execute("UPDATE models SET bin = %s, trainedat = %s where id = %s", [model.get_binary(), datetime.now(), model.modelId])
 
 def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingModel:
     with tempfile.TemporaryDirectory() as directory:
