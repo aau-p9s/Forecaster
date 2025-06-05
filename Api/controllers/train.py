@@ -35,7 +35,7 @@ class Train(Resource):
 
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
     def get(self, service_id: str, forecast_horizon: int):
-        return status_codes[trainers[service_id]._process.is_alive()]
+        return status_codes[trainers[service_id].status.get() == "Busy"]
 
 
 @api.route("/train/<string:service_id>/kill")

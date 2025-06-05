@@ -28,6 +28,7 @@ class Trainer:
         self.settings_repository:SettingsRepository = settings_repository
         self.forecaster = Forecaster(service_id, model_repository, forecast_repository, settings_repository)
         self.model_status = self.manager.dict()
+        self.status = self.manager.Value(str, "Idle")
 
     def train(self, series:Historical, horizon:int) -> None:
         self.model_status.clear()
@@ -35,6 +36,7 @@ class Trainer:
         self._process.start()
 
     def _train(self, data:Historical, period:int) -> None:
+        self.status.set("Busy")
         series:TimeSeries = load_historical_data(data, period)
         preprocessed_series, missing_value_ratio, scaler = run_transformer_pipeline(series)
         train_series, validation_series = preprocessed_series.split_after(.75)
@@ -53,19 +55,21 @@ class Trainer:
         for model in models:
             fitted_models.append(train_model(model, train_series, self.model_status))
             self.model_status[model.name]["message"] = "finished training"
+            self.model_status[model.name]["end_time"] = time()
+
+        print("Finished training", flush=True)
+        self.forecaster._predict(validation_series, period)
+        self.model_status["finished"] = True
+        self.status.set("Idle")
 
         for fitted_model in fitted_models:
             if fitted_model is None:
                 continue
             self.model_status[fitted_model.name]["message"] = "saving"
-            self.model_status[fitted_model.name]["end_time"] = time()
             print("Saving model...", flush=True)
             print(f"something about model: {fitted_model.model}")
             self.model_repository.upsert_model(fitted_model)
             self.model_status[fitted_model.name]["message"] = "finished"
-
-        print("Finished training", flush=True)
-        self.forecaster._predict(validation_series, period)
 
 #@timeout
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
