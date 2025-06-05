@@ -59,6 +59,7 @@ class Trainer:
                 print(f"something about model: {fitted_model.model}")
                 self.model_repository.upsert_model(fitted_model)
             except Exception as e:
+                self.model_status[model.name]["end_time"] = time()
                 self.model_status[model.name]["message"] = "failed"
                 self.model_status[model.name]["error"] = f"{e}"
                 traceback.print_exc()
