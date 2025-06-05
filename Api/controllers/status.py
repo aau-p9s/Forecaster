@@ -34,4 +34,4 @@ def format_model_status(name: str, status:dict) -> str:
     error: str = status['error']
     time_str = str(end_time - start_time if end_time is not None else time() - start_time if start_time is not None else '0.00')
     error_str = error if error is not None else ''
-    return f"|\t{float(time_str):^7.4f}\t|\t{name:^40}\t|\t{message:^7}\t|\t{error_str}"
+    return f"|\t{float(time_str):<7.4f}\t|\t{name:<40}\t|\t{message:<7}\t|\t{error_str}"
