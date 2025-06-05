@@ -52,7 +52,7 @@ class Trainer:
         fitted_models = []
         for model in models:
             fitted_models.append(train_model(model, train_series.copy(), self.model_status))
-            self.model_status[model.name]["message"] = "finished training"
+            self.model_status[model.name]["message"] = "finished"
             self.model_status[model.name]["end_time"] = time()
 
         print("Finished training", flush=True)
@@ -66,7 +66,7 @@ class Trainer:
             print("Saving model...", flush=True)
             print(f"something about model: {fitted_model.model}")
             self.model_repository.upsert_model(fitted_model)
-            self.model_status[fitted_model.name]["message"] = "finished"
+            self.model_status[fitted_model.name]["message"] = "saved"
 
 @timeout()
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
