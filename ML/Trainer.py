@@ -53,11 +53,12 @@ class Trainer:
                 fitted_model = self.train_model(model, train_series)
                 if fitted_model is None:
                     raise RuntimeError(f"Error, {model.name} is None, probably timed out")
-                self.model_status[model.name]["message"] = "finished"
+                self.model_status[model.name]["message"] = "saving"
                 self.model_status[model.name]["end_time"] = time()
                 print("Saving model...", flush=True)
                 print(f"something about model: {fitted_model.model}")
                 self.model_repository.upsert_model(fitted_model)
+                self.model_status[model.name]["message"] = "finished"
             except Exception as e:
                 self.model_status[model.name]["end_time"] = time()
                 self.model_status[model.name]["message"] = "failed"
