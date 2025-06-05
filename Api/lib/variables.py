@@ -25,6 +25,7 @@ port = getEnv("FORECASTER__PGSQL__PORT", "5432")
 api_addr = getEnv("FORECASTER__ADDR", "0.0.0.0")
 api_port = getEnv("FORECASTER__PORT", "8080")
 train_timeout = int(getEnv("FORECASTER__TRAIN__TIMEOUT", "-1"))
+enable_gpu = getEnv("FORECASTER__ENABLE__GPU", "1") == "1"
 db = DbConnection(database, user, password, addr, port)
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)

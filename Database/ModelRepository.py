@@ -12,6 +12,7 @@ import torch
 from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
+from Api.lib.variables import enable_gpu
 
 class PositiveGaussianLikelihood(GaussianLikelihood):
     def forward(self, *args, **kwargs):
@@ -74,13 +75,13 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingMo
         with open(f"{directory}/{name}.pth", "wb") as file:
             file.write(data)
         try:
-            model = torch.load(f"{directory}/{name}.pth", weights_only=False, map_location="cpu")
+            model = torch.load(f"{directory}/{name}.pth", weights_only=False, map_location= 'cuda' if enable_gpu else "cpu")
         except:
             try:
                 model = ForecastingModel.load(f"{directory}/{name}.pth")
             except:
                 raise UnpicklingError
-        if isinstance(model, TorchForecastingModel):
+        if isinstance(model, TorchForecastingModel) and not enable_gpu:
             model.to_cpu()
         return model 
 
