@@ -12,7 +12,10 @@ import torch
 from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
-from Api.lib.variables import enable_gpu
+
+from Utils.getEnv import getEnv
+
+enable_gpu = getEnv("FORECASTER__ENABLE__GPU", "1") == "1"
 
 class PositiveGaussianLikelihood(GaussianLikelihood):
     def forward(self, *args, **kwargs):
