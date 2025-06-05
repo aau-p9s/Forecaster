@@ -7,7 +7,7 @@ from datetime import datetime
 
 from Database.Models.Historical import Historical
 from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository
+from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository, num_gpus
 
 trainers:dict[str, Trainer] = {}
 
@@ -19,7 +19,7 @@ class Train(Resource):
         if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
         if not service_id in trainers:
-            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)
+            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository, gpu_id=len(trainers)%num_gpus)
         elif trainers[service_id]._process.is_alive():
             return Response(status=202, response="Still working...")
 

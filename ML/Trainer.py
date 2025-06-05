@@ -21,12 +21,13 @@ import multiprocessing as mp
 
 class Trainer:
     manager = mp.Manager()
-    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
+    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository, gpu_id: int = 0) -> None:
         self.id:UUID = service_id
         self.model_repository:ModelRepository = model_repository
         self.forecast_repository:ForecastRepository = forecast_repository
         self.settings_repository:SettingsRepository = settings_repository
         self.forecaster = Forecaster(service_id, model_repository, forecast_repository, settings_repository)
+        self.gpu_id = gpu_id
         self.model_status = self.manager.dict()
         self.status = self.manager.Value(str, "Idle")
 
@@ -44,7 +45,7 @@ class Trainer:
         print(f"mssing_value_ratio:         {missing_value_ratio}", flush=True)
         print(f"scaler:                     {scaler}", flush=True)
 
-        models = self.model_repository.get_all_models_by_service(self.id)
+        models = self.model_repository.get_all_models_by_service(self.id, gpu_id=self.gpu_id)
         for model in models:
             self.model_status[model.name] = self.manager.dict({ "message": "working", "error": None, "start_time": None, "end_time": None })
 

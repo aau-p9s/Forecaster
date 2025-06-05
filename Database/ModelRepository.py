@@ -23,7 +23,7 @@ class ModelRepository:
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_all_models_by_service(self, serviceId:UUID) -> list[Model]:
+    def get_all_models_by_service(self, serviceId:UUID, gpu_id: int = 0) -> list[Model]:
         rows = self.db.execute_get('SELECT id, name, bin, ckpt from models WHERE "serviceid" = %s;', [str(serviceId)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
@@ -31,7 +31,7 @@ class ModelRepository:
         models = []
         for row in rows:
             try:
-                models.append(Model(UUID(row[0]), row[1], load_model(row[1], row[2], row[3]), serviceId))
+                models.append(Model(UUID(row[0]), row[1], load_model(row[1], row[2], row[3], gpu_id = gpu_id), serviceId))
             except UnpicklingError as e:
                 traceback.print_exception(e)
                 print(f"Model {row[1]} failed to load {e}", flush=True)
@@ -62,7 +62,7 @@ class ModelRepository:
     def upsert_model(self, model:Model) -> None:
         self.db.execute("UPDATE models SET bin = %s, trainedat = %s where id = %s", [model.get_binary(), datetime.now(), str(model.modelId)])
 
-def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingModel:
+def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0) -> ForecastingModel:
     with tempfile.TemporaryDirectory() as directory:
         if ckpt is not None:
             with open(f"{directory}/{name}.pth.ckpt", "wb") as file:
@@ -70,7 +70,10 @@ def load_model(name: str, data: bytes, ckpt: bytes|None = None) -> ForecastingMo
         with open(f"{directory}/{name}.pth", "wb") as file:
             file.write(data)
         try:
-            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location= 'cuda' if enable_gpu else "cpu")
+            model = TorchForecastingModel.load(f"{directory}/{name}.pth", pl_trainer_kwargs={
+                "accelerator": "gpu",
+                "devices": [gpu_id]
+            }, map_location= 'cuda' if enable_gpu else "cpu")
             if not enable_gpu:
                 model.to_cpu()
         except Exception as e1:
