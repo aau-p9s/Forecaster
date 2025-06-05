@@ -68,6 +68,6 @@ class Trainer:
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
 
-    @timeout(time=30)
+    @timeout()
     def train_model(self, model: Model, series: TimeSeries) -> Model:
         return Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)
