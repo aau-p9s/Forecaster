@@ -42,47 +42,21 @@ class Trainer:
 
         models = self.model_repository.get_all_models_by_service(self.id)
         for model in models:
-            self.model_status[model.name] = "working"
-
-        #with mp.Pool(4) as p:
-        #    fitted_models = p.map(train_model, [(model, train_series, self.model_status) for model in models])
-
-        #successfully_fitted_models = list(filter(lambda model: model is not None, fitted_models))
-        #for model in successfully_fitted_models:
-        #    if model is not None:
-        #        self.model_repository.upsert_model(model)
+            self.model_status[model.name] = { "message": "working", "error": None }
 
         for model in models:
             try:
-                fitted_model = model.model.fit(train_series)
-                self.model_status[model.name] = "finished"
-                self.model_repository.upsert_model(Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler))
+                print(f"Training {model.name}", flush=True)
+                fitted_model = self.train_model(model, train_series)
+                self.model_status[model.name] = { "message": "finished", "error": None }
+                self.model_repository.upsert_model(fitted_model)
             except Exception as e:
-                self.model_status[model.name] = "failed"
+                self.model_status[model.name] = { "message": "failed", "error": f"{e}" }
                 print(e)
-
-
 
         print("Finished training", flush=True)
         self.forecaster._predict(validation_series, period)
 
-def train_model(args:tuple[Model, TimeSeries, DictProxy]) -> Model | None:
-    model, series, status_dict = args
-    print(f"Training model: {model.name}", flush=True)
-    try:
-        fitted_model = model.model.fit(series)
-        #fitted_model = fit(model.model.fit, series)
-        print("Fitted model", flush=True)
-        print("Saved model", flush=True)
-        status_dict[model.name] = "finished"
-        return Model(model.modelId, model.name, fitted_model, model.serviceId, model.scaler)
-    except Exception as e:
-        print(e)
-        status_dict[model.name] = "failed"
-        return None
-
-
-
-@timeout
-def fit(fit_method, arg):
-    return fit_method(arg)
+    @timeout(time=30)
+    def train_model(self, model: Model, series: TimeSeries) -> Model:
+        return Model(model.modelId, model.name, model.model.fit(series), model.serviceId, model.scaler)

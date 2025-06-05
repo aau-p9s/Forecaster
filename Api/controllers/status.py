@@ -20,7 +20,7 @@ class Predict(Resource):
         ] + [
             f"{id}:\tStatus:\t{'Working' if trainer._process.is_alive() else 'Finished'}\n" +
             "\n".join([
-                f"\t{status}:\t{name}"
+                f"\t{status['message']}:\t{name}\t-\t{status['error'] if status['error'] is not None else ''}"
                 for name, status in trainer.model_status.items()
             ])
             for id, trainer in trainers.items()
