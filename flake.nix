@@ -54,7 +54,7 @@
 
                 while true; do
                     clear
-                    ${pkgs.curl}/bin/curl -s https://$1/status 2>/dev/null
+                    ${pkgs.curl}/bin/curl http://$1/status 2>/dev/null
                     sleep 5
                 done
             '';
