@@ -55,7 +55,7 @@
                 while true; do
                     status=$(${pkgs.curl}/bin/curl http://$1/status 2>/dev/null)
                     clear
-                    echo $status
+                    echo "$status"
                     sleep 5
                 done
             '';
