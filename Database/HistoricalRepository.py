@@ -1,5 +1,5 @@
 
-from json import dumps, loads
+from json import dumps
 from uuid import UUID
 from Database.Models.Historical import Historical
 from Database.dbhandler import DbConnection

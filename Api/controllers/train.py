@@ -5,8 +5,8 @@ from flask_restx import Resource
 import pandas as pd
 
 from Database.Models.Historical import Historical
-from ML.Trainer import Trainer
-from ..lib.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository, num_gpus
+from ML.Trainer.Trainer import Trainer
+from Utils.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository, num_gpus, launch_lock
 
 trainers:dict[str, Trainer] = {}
 
@@ -14,6 +14,7 @@ trainers:dict[str, Trainer] = {}
 class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500:"Something ML died!!!!"})
     def post(self, service_id:str, horizon: int=12):
+        launch_lock.acquire()
         services = service_repository.get_all_services()
         if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
@@ -32,10 +33,11 @@ class Train(Resource):
         trainers[service_id].run(historical[0], pd.to_timedelta(f"{horizon}s"), gpu_id)
         while not trainers[service_id]._process.is_alive(): pass # wait for trainer to actually have started
 
+        launch_lock.release()
         return Response(status=200, response=dumps({"message":f"Training started for {service_id}"}))
 
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
-    def get(self, service_id: str, period: int):
+    def get(self, service_id: str, horizon: int):
         return status_codes[trainers[service_id].status.get() == "Busy"]
 
 

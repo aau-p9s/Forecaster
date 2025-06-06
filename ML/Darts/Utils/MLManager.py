@@ -15,20 +15,19 @@ from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_p
 class MLManager:
     manager = mp.Manager()
 
-    _process: Process
-    status = manager.Value(str, "Busy")
-
     def idle(self):
         self.status.set("Idle")
 
-    def busy(self):
-        self.status.set("Busy")
+    def busy(self, message: str = "Busy"):
+        self.status.set(message)
 
     def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
         self.service_id = service_id
         self.model_repository = model_repository
         self.forecast_repository = forecast_repository
         self.settings_repository = settings_repository
+        self.status = self.manager.Value(str, "Busy")
+        self._process: Process
 
 
     def run(self, series:Historical | None, horizon:Timedelta, gpu_id: int = 0) -> None:

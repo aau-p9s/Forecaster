@@ -35,15 +35,29 @@
             ];
         };
 
-        packages.${system}.env = pkgs.python3.withPackages (py: with py; [
-            psycopg2
-            ipython
-            cloudpickle
-            flask
-            flask-restx
-            optuna
-            # unstable shit
-            darts
-        ]);
+        packages.${system} = {
+            env = pkgs.python3.withPackages (py: with py; [
+                psycopg2
+                ipython
+                cloudpickle
+                flask
+                flask-restx
+                optuna
+                # unstable shit
+                darts
+            ]);
+            monitor = pkgs.writeScriptBin "monitor" ''
+                #!${pkgs.bash}/bin/bash
+                set -e
+                tput smcup
+                trap 'tput rmcup; exit' INT
+
+                while true; do
+                    clear
+                    ${pkgs.curl}/bin/curl -s https://$1/status 2>/dev/null
+                    sleep 5
+                done
+            '';
+        };
     };
 }

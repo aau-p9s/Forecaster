@@ -5,8 +5,8 @@ from flask_restx import Resource
 import pandas as pd
 
 from Database.Models.Historical import Historical
-from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes, num_gpus
+from ML.Forecaster.Forecaster import Forecaster
+from Utils.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes, num_gpus, launch_lock
 
 forecasters:dict[str, Forecaster] = {}
 
@@ -15,6 +15,7 @@ forecasters:dict[str, Forecaster] = {}
 class Predict(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500: "something died..."})
     def post(self, service_id:str, horizon: int=12):
+        launch_lock.acquire()
         services = service_repository.get_all_services()
         gpu_id = len(list(filter(lambda trainer: trainer._process.is_alive(), forecasters.values()))) % num_gpus
         if not service_id in [str(service.id) for service in services]:
@@ -30,11 +31,11 @@ class Predict(Resource):
 
         forecasters[service_id].run(historical[0] if historical else None, pd.to_timedelta(f"{horizon}s"), gpu_id)
 
-
+        launch_lock.release()
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
-    def get(self, service_id: str, forecast_horizon: int):
+    def get(self, service_id: str, horizon: int):
         return status_codes[forecasters[service_id]._process.is_alive()]
 
 @api.route("/predict/<string:service_id>/kill")

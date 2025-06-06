@@ -1,5 +1,5 @@
 import signal
-from Api.lib.variables import train_timeout
+from Utils.variables import train_timeout
 import traceback
 
 def signal_handler(arg1, arg2):

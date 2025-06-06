@@ -1,11 +1,14 @@
 
 # quick endpoint to debug
+from datetime import datetime
 from flask import Response
 from flask_restx import Resource
 from time import time
-from Api.lib.variables import api
+from Utils.variables import api
 from Api.controllers.predict import forecasters
 from Api.controllers.train import trainers
+
+start_time = datetime.now()
 
 @api.route("/status")
 class Predict(Resource):
@@ -15,7 +18,7 @@ class Predict(Resource):
             "-"*30,
             "*** FORECASTERS ***"
         ] + [
-            f"{id}:\tStatus:\t{forecaster.status.get()}"
+            f"{id}:\tStatus:\t{forecaster.status.get()} ({forecaster.finished.get()}/{forecaster.total.get()})"
             for id, forecaster in forecasters.items()
         ] + [
             "-"*30,
@@ -36,7 +39,7 @@ class Predict(Resource):
             id: str_table(format_table(table))
             for id, table in model_tables.items()
         }
-        return Response(status=200, response="\n".join([process_status] + ["-"*30]+ [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
+        return Response(status=200, response="\n".join([f"Running time: {datetime.now() - start_time}"] + [process_status] + ["-"*30]+ [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
 
 
 

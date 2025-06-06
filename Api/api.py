@@ -1,4 +1,4 @@
-from .lib.variables import api_addr, api_port, app
+from Utils.variables import api_addr, api_port, app
 from .controllers import predict, train, tuner, models, status
 from .lib import models
    

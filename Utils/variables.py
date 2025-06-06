@@ -1,4 +1,5 @@
 
+from multiprocessing import Lock
 from flask import Flask, Response
 from flask_restx import Api
 
@@ -27,6 +28,7 @@ api_port = getEnv("FORECASTER__PORT", "8080")
 train_timeout = int(getEnv("FORECASTER__TRAIN__TIMEOUT", "-1"))
 num_gpus = int(getEnv("FORECASTER__TRAIN__GPUS", "2"))
 db = DbConnection(database, user, password, addr, port)
+launch_lock = Lock()
 model_repository = ModelRepository(db)
 forecast_repository = ForecastRepository(db)
 service_repository = ServiceRepository(db)

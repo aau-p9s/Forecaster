@@ -1,8 +1,8 @@
 from pandas import Timedelta
 from Database.Models.Historical import Historical
-from ML.Darts.Training.train import train_models
 from ML.Darts.Utils.MLManager import MLManager
-from ML.Forecaster import Forecaster
+from ML.Forecaster.Forecaster import Forecaster
+from ML.Trainer.train import train_models
 
 class Trainer(MLManager):
     def __init__(self, *args, **kwargs):
@@ -12,7 +12,7 @@ class Trainer(MLManager):
 
     def _run(self, historical:Historical, horizon:Timedelta, gpu_id: int = 0) -> None:
         self.model_status.clear()
-        self.busy()
+        self.busy("Training")
         train_series, _, _ = self.preprocess(historical, horizon)
 
         print("Getting models", flush=True)
@@ -33,7 +33,8 @@ class Trainer(MLManager):
             print(f"something about model: {fitted_model.model}")
             self.model_repository.upsert_model(fitted_model)
             self.model_status[fitted_model.name]["message"] = "saved"
-
+        
+        self.busy("Forecasting")
         self.forecaster._run(historical, horizon)
         self.idle()
 
