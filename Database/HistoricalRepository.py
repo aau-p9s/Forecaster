@@ -1,5 +1,5 @@
 
-from json import loads
+from json import dumps, loads
 from uuid import UUID
 from Database.Models.Historical import Historical
 from Database.dbhandler import DbConnection
@@ -14,3 +14,11 @@ class HistoricalRepository:
             str(service_id)
         ])
         return [Historical(UUID(row[0]), row[1], row[2], row[3]) for row in rows]
+
+    def insert(self, historical: Historical) -> None:
+        self.db.execute("INSERT INTO historicdata (id, serviceid, createdat, historicdata) values (%s, %s, %s, %s)", [
+            str(historical.id),
+            str(historical.service_id),
+            historical.timestamp,
+            dumps(historical.data)
+        ])

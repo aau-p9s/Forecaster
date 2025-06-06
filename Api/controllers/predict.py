@@ -1,22 +1,22 @@
 from json import dumps
-from multiprocessing import Process
 from uuid import UUID
 from flask import Response
 from flask_restx import Resource
-from datetime import datetime
+import pandas as pd
 
 from Database.Models.Historical import Historical
 from ML.Forecaster import Forecaster
-from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes
+from ..lib.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes, num_gpus
 
 forecasters:dict[str, Forecaster] = {}
 
 
-@api.route("/predict/<string:service_id>/<int:forecast_horizon>")
+@api.route("/predict/<string:service_id>/<int:horizon>")
 class Predict(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500: "something died..."})
-    def post(self, service_id:str, forecast_horizon=12):
+    def post(self, service_id:str, horizon: int=12):
         services = service_repository.get_all_services()
+        gpu_id = len(list(filter(lambda trainer: trainer._process.is_alive(), forecasters.values()))) % num_gpus
         if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
         historical:list[Historical] | None = historical_repository.get_by_service(UUID(service_id))
@@ -28,7 +28,7 @@ class Predict(Resource):
         elif forecasters[service_id]._process.is_alive():
             return Response(status=202, response="Still working...")
 
-        forecasters[service_id].predict(historical[0] if historical else None, forecast_horizon)
+        forecasters[service_id].run(historical[0] if historical else None, pd.to_timedelta(f"{horizon}s"), gpu_id)
 
 
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))

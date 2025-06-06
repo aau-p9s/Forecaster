@@ -1,53 +1,21 @@
-from datetime import timedelta
-from multiprocessing import Process
-import traceback
-from uuid import UUID
-from darts import TimeSeries
-from Database.ForecastRepository import ForecastRepository
-from Database.HistoricalRepository import HistoricalRepository
-from Database.ModelRepository import ModelRepository
-from darts.metrics import rmse
+from pandas import Timedelta
 from Database.Models.Forecast import Forecast
 from Database.Models.Historical import Historical
-from Database.Models.Model import Model
-from sklearn.preprocessing import MinMaxScaler
-from Database.SettingsRepository import SettingsRepository
-from ML.Darts.Utils.preprocessing import Scaler, load_historical_data
+from ML.Darts.Training.predict import predict_all
+from ML.Darts.Utils.MLManager import MLManager
 
-class Forecaster:
-    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
-        self.id = service_id
-        self.model_repository = model_repository
-        self.forecast_repository = forecast_repository
-        self.settings_repository = settings_repository
+class Forecaster(MLManager):
+    def _run(self, historical:Historical, horizon:Timedelta, gpu_id : int = 0) -> Forecast:
+        self.busy()
+        _, series, scaler = self.preprocess(historical, horizon)
+        settings = self.settings_repository.get_settings(self.service_id)
 
-    def predict(self, series:Historical | None, period:int):
-        self._process = Process(target=self._predict, args=[load_historical_data(series, period) if series else None, period])
-        self._process.start()
-
-    def _predict(self, series:TimeSeries | None, period:int) -> Forecast:
-        models = self.model_repository.get_all_models_by_service(self.id)
-        forecasts:list[Forecast] = []
-
-        for i, model in enumerate(models):
-            try:
-                print(f"Predicting for period: {period}", flush=True)
-                forecast = model.model.predict(period*int(60*2)) # scale to seconds, and scale slightly more to adjust for the validation series during training
-                print("Created forecast", flush=True)
-                if series:
-                    forecast_rmse = rmse(series, forecast)
-                    print("Calculated RMSE", flush=True)
-                else:
-                    forecast_rmse = i
-                forecasts.append(Forecast(model.modelId, forecast, forecast_rmse))
-                print("saved forecast for comparison...", flush=True)
-            except Exception as e:
-                traceback.print_exc()
-                print(f"Model {model.name} failed, continuing no next model: {e}", flush=True)
+        models = self.model_repository.get_all_models_by_service(self.service_id, gpu_id)
+        forecasts:list[Forecast] = predict_all(models, series, scaler, settings.scale_period, horizon)
 
         print(f"Forecasts count: {len(forecasts)}", flush=True)
         forecast = min(forecasts, key=lambda x: x.error)
-        self.forecast_repository.upsert_forecast(forecast, self.id)
+        self.forecast_repository.upsert_forecast(forecast, self.service_id)
+        self.idle()
 
         return forecast
-

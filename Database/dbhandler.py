@@ -12,9 +12,7 @@ class DbConnection:
         self.host = hostname
         self.port = port
     def execute(self, query_string, params=None) -> None:
-        print("Getting lock", flush=True)
         self.lock.acquire()
-        print("Got lock", flush=True)
         if self.connection.closed:
             self.__init__(self.database, self.user, self.password, self.host, self.port)
         try:
@@ -26,12 +24,11 @@ class DbConnection:
             self.connection.commit()
         except Exception as e:
             print("There was an error in the database", flush=True)
-            traceback.format_exception(e)
+            traceback.print_exception(e)
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
         self.lock.release()
-        print("Released lock")
 
     def execute_get(self, query_string, params=None) -> list[tuple]:
         """Executes query given a querystring and optional parameters.
@@ -39,9 +36,7 @@ class DbConnection:
             query_string: Sql query statement
             params: Query parameters
         """
-        print("Getting lock", flush=True)
         self.lock.acquire()
-        print("Got lock", flush=True)
         if self.connection.closed:
             self.__init__(self.database, self.user, self.password, self.host, self.port)
         try:
@@ -54,14 +49,13 @@ class DbConnection:
             self.connection.commit()
         except Exception as e:
             print("There was an error in the database", flush=True)
-            traceback.format_exception(e)
+            traceback.print_exception(e)
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
             data = []
 
         self.lock.release()
-        print("Released lock", flush=True)
         return data
 
     

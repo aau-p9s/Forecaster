@@ -2,14 +2,12 @@ from datetime import datetime
 from pickle import UnpicklingError
 import tempfile
 from uuid import UUID
-import cloudpickle as pickle
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from Database.dbhandler import DbConnection
 import psycopg2
 from Database.Utils import gen_uuid
 from Database.Models.Model import Model
 import torch
-from darts.utils.likelihood_models import GaussianLikelihood
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 import traceback
@@ -17,6 +15,7 @@ import traceback
 from Utils.getEnv import getEnv
 
 enable_gpu = getEnv("FORECASTER__ENABLE__GPU", "1") == "1"
+model_tmpdir = getEnv("FORECASTER__TEMPORARY__DIRECTORY", "/dev/shm")
 
 
 class ModelRepository:
@@ -57,13 +56,13 @@ class ModelRepository:
         return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]
 
     def insert_model(self, model:Model):
-        self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
+        self.db.execute('INSERT INTO models (id, name, bin, trainedat, serviceid) VALUES (%s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId)])
 
     def upsert_model(self, model:Model) -> None:
         self.db.execute("UPDATE models SET bin = %s, trainedat = %s where id = %s", [model.get_binary(), datetime.now(), str(model.modelId)])
 
 def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0) -> ForecastingModel:
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory(dir=model_tmpdir) as directory:
         if ckpt is not None:
             with open(f"{directory}/{name}.pth.ckpt", "wb") as file:
                 file.write(ckpt)

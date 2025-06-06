@@ -1,11 +1,12 @@
 import os
+import sys
 import cloudpickle
 import psycopg2
 from uuid import uuid4
 from datetime import datetime
 
 
-BASE_DIR = os.path.expanduser("./Assets/models")
+BASE_DIR = os.path.expanduser(sys.argv[-1])
 
 DB_CONFIG = {
     "dbname": "autoscaler",

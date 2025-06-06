@@ -22,8 +22,12 @@ services:
       FORECASTER__PGSQL__PORT: 5432
       FORECASTER__ADDR: 0.0.0.0
       FORECASTER__PORT: 8080
+      FORECASTER__TRAIN__TIMEOUT: 180
+      FORECASTER__TEMPORARY_DIRECTORY: /var/model_tmp
     ports:
       - "8080:8080"
+    volumes:
+      - /var/model_tmp:/var/model_tmp
 
     depends_on:
       - db

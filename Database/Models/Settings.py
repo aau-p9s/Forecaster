@@ -1,8 +1,10 @@
 from uuid import UUID
 
+from pandas import Timedelta
+
 
 class Setting:
-    def __init__(self, id:UUID, service_id:UUID, scale_up:int, scale_down:int, min_replicas:int, max_replicas:int, scale_period:int, train_interval:int) -> None:
+    def __init__(self, id:UUID, service_id:UUID, scale_up:int, scale_down:int, min_replicas:int, max_replicas:int, scale_period:Timedelta, train_interval:Timedelta) -> None:
         self.id = id
         self.service_id = service_id
         self.scale_up = scale_up

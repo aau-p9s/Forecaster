@@ -1,5 +1,5 @@
-from json import loads
 from uuid import UUID
+import pandas as pd
 
 from psycopg2 import DatabaseError
 from Database.Models.Settings import Setting
@@ -15,6 +15,14 @@ class SettingsRepository:
         print(rows)
         if len(rows) > 0:
             row = rows[0]
-            return Setting(UUID(row[0]), UUID(row[1]), int(row[2]), int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]))
+            return Setting(
+                UUID(row[0]),
+                UUID(row[1]),
+                int(row[2]),
+                int(row[3]),
+                int(row[4]),
+                int(row[5]),
+                pd.to_timedelta(f"{row[6]}ms"),
+                pd.to_timedelta(f"{row[7]}ms"))
         raise DatabaseError(f"Error, settings table returned {len(rows)} rows: {rows} with service_id: {service_id}")
 

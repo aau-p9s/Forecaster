@@ -15,17 +15,17 @@ class Predict(Resource):
             "-"*30,
             "*** FORECASTERS ***"
         ] + [
-            f"{id}:\tStatus:\t{'Working' if forecaster._process.is_alive() else 'Finished'}"
+            f"{id}:\tStatus:\t{forecaster.status.get()}"
             for id, forecaster in forecasters.items()
         ] + [
             "-"*30,
             "*** TRAINERS ***"
         ] + [
-            f"{id}:\tStatus:\t{'Working' if trainer._process.is_alive() else 'Finished'}"
+            f"{id}:\tStatus:\t{trainer.status.get()}"
             for id, trainer in trainers.items()
         ])
 
-        model_tables = {id:[
+        model_tables = {id:[["Running time", "Model name", "Status", "Error"]] + [
                 format_model_status(name, status)
                 for name, status in trainer.model_status.items()
             ]
@@ -36,7 +36,7 @@ class Predict(Resource):
             id: str_table(format_table(table))
             for id, table in model_tables.items()
         }
-        return Response(status=200, response="\n".join([process_status] + ["-"*30] + [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
+        return Response(status=200, response="\n".join([process_status] + ["-"*30]+ [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
 
 
 

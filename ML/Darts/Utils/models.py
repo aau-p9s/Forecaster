@@ -12,4 +12,3 @@ class PositiveGaussianLikelihood(GaussianLikelihood):
         result.std = torch.exp(result.std)  # Ensures a positive std after exp
         return result
 
-
