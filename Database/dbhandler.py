@@ -24,9 +24,9 @@ class DbConnection:
             else:
                 cursor.execute(query_string, params)
             self.connection.commit()
-        except Exception:
+        except Exception as e:
             print("There was an error in the database", flush=True)
-            print(traceback.format_exc())
+            traceback.format_exception(e)
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
@@ -52,18 +52,17 @@ class DbConnection:
                 cursor.execute(query_string, params)
             data = cursor.fetchall()
             self.connection.commit()
-            self.lock.release()
-            print("Released lock", flush=True)
-            return data
-        except Exception:
+        except Exception as e:
             print("There was an error in the database", flush=True)
-            print(traceback.format_exc())
+            traceback.format_exception(e)
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
-            self.lock.release()
-            print("Released lock", flush=True)
-            return []
+            data = []
+
+        self.lock.release()
+        print("Released lock", flush=True)
+        return data
 
     
     def close(self):
