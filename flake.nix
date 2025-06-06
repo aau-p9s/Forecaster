@@ -53,8 +53,9 @@
                 trap 'tput rmcup; exit' INT
 
                 while true; do
+                    status=$(${pkgs.curl}/bin/curl http://$1/status 2>/dev/null)
                     clear
-                    ${pkgs.curl}/bin/curl http://$1/status 2>/dev/null
+                    echo $status
                     sleep 5
                 done
             '';
