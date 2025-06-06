@@ -7,9 +7,9 @@ class DbConnection:
         self.connection = psycopg2.connect(database=dbname, user=username, password=password, host=hostname, port=port)
         self.lock = Lock()
     def execute(self, query_string, params=None) -> None:
-        print("Getting lock", flush=True)
-        self.lock.acquire()
-        print("Got lock", flush=True)
+        #print("Getting lock", flush=True)
+        #self.lock.acquire()
+        #print("Got lock", flush=True)
         try:
             cursor = self.connection.cursor()
             if params == None:
@@ -23,8 +23,8 @@ class DbConnection:
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
-        self.lock.release()
-        print("Released lock")
+        #self.lock.release()
+        #print("Released lock")
 
     def execute_get(self, query_string, params=None) -> list[tuple]:
         """Executes query given a querystring and optional parameters.
@@ -32,9 +32,9 @@ class DbConnection:
             query_string: Sql query statement
             params: Query parameters
         """
-        print("Getting lock", flush=True)
-        self.lock.acquire()
-        print("Got lock", flush=True)
+        #print("Getting lock", flush=True)
+        #self.lock.acquire()
+        #print("Got lock", flush=True)
         try:
             cursor = self.connection.cursor()
             if params == None:
@@ -43,7 +43,7 @@ class DbConnection:
                 cursor.execute(query_string, params)
             data = cursor.fetchall()
             self.connection.commit()
-            self.lock.release()
+            #self.lock.release()
             print("Released lock", flush=True)
             return data
         except Exception:
@@ -52,7 +52,7 @@ class DbConnection:
             cursor = self.connection.cursor()
             cursor.execute("ROLLBACK")
             self.connection.commit()
-            self.lock.release()
+            #self.lock.release()
             print("Released lock", flush=True)
             return []
 
