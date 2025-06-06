@@ -12,11 +12,13 @@ class Predict(Resource):
     @api.doc(responses={200:"ok"})
     def get(self):
         process_status = "\n".join([
+            "-"*30,
             "*** FORECASTERS ***"
         ] + [
             f"{id}:\tStatus:\t{'Working' if forecaster._process.is_alive() else 'Finished'}"
             for id, forecaster in forecasters.items()
         ] + [
+            "-"*30,
             "*** TRAINERS ***"
         ] + [
             f"{id}:\tStatus:\t{'Working' if trainer._process.is_alive() else 'Finished'}"
@@ -34,7 +36,7 @@ class Predict(Resource):
             id: str_table(format_table(table))
             for id, table in model_tables.items()
         }
-        return Response(status=200, response="\n".join([process_status] + [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
+        return Response(status=200, response="\n".join([process_status] + ["-"*30] + [f"Model status for {id}:\n{table}" for id, table in final_model_tables.items()]))
 
 
 
