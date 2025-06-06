@@ -1,5 +1,6 @@
 from json import dumps, loads
 from multiprocessing import Process
+from time import sleep
 from uuid import UUID
 from flask import Response
 from flask_restx import Resource
@@ -30,6 +31,7 @@ class Train(Resource):
 
 
         trainers[service_id].train(historical[0], forecast_horizon)
+        while not trainers[service_id]._process.is_alive(): pass # wait for trainer to actually have started
 
         return Response(status=200, response=dumps({"message":f"Training started for {service_id}"}))
 

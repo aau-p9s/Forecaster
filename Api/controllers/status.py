@@ -52,6 +52,8 @@ def format_model_status(name: str, status:dict) -> list[str]:
 def format_table(table: list[list[str]]):
     final_table = []
     column_max_widths = []
+    if not table:
+        return table
     for column_index in range(len(table[0])):
         column_max_widths.append(max([len(row[column_index]) for row in table]))
     for row in table:
