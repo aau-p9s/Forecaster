@@ -5,11 +5,18 @@ import psycopg2
 class DbConnection:
     def __init__(self, dbname, username, password, hostname, port):
         self.connection = psycopg2.connect(database=dbname, user=username, password=password, host=hostname, port=port)
-        self.lock = Lock()
+        #self.lock = Lock()
+        self.database = dbname
+        self.user = username
+        self.password = password
+        self.host = hostname
+        self.port = port
     def execute(self, query_string, params=None) -> None:
         #print("Getting lock", flush=True)
         #self.lock.acquire()
         #print("Got lock", flush=True)
+        if self.connection.closed:
+            self.__init__(self.database, self.user, self.password, self.host, self.port)
         try:
             cursor = self.connection.cursor()
             if params == None:
@@ -35,6 +42,8 @@ class DbConnection:
         #print("Getting lock", flush=True)
         #self.lock.acquire()
         #print("Got lock", flush=True)
+        if self.connection.closed:
+            self.__init__(self.database, self.user, self.password, self.host, self.port)
         try:
             cursor = self.connection.cursor()
             if params == None:
@@ -44,7 +53,7 @@ class DbConnection:
             data = cursor.fetchall()
             self.connection.commit()
             #self.lock.release()
-            print("Released lock", flush=True)
+            #print("Released lock", flush=True)
             return data
         except Exception:
             print("There was an error in the database", flush=True)
@@ -53,7 +62,7 @@ class DbConnection:
             cursor.execute("ROLLBACK")
             self.connection.commit()
             #self.lock.release()
-            print("Released lock", flush=True)
+            #print("Released lock", flush=True)
             return []
 
     
