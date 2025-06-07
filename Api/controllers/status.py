@@ -50,7 +50,7 @@ def format_model_status(name: str, status:dict) -> list[str]:
     end_time: float = status['end_time']
     message: str = status['message']
     error: str = status['error']
-    time_str = str(end_time - start_time if end_time is not None else time() - start_time if start_time is not None else '0.00')
+    time_str = f"{end_time - start_time if end_time is not None else time() - start_time if start_time is not None else 0.00:.2f}"
     error_str = error if error is not None else ''
     return [time_str, name, message, error_str]
 

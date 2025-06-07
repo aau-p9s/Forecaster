@@ -1,5 +1,5 @@
 from pandas import Timedelta
-from Database.Models.Historical import Historical
+from Database.Entities.Historical import Historical
 from ML.Darts.Utils.MLManager import MLManager
 from ML.Forecaster.Forecaster import Forecaster
 from ML.Trainer.train import train_models
@@ -30,11 +30,8 @@ class Trainer(MLManager):
                 continue
             self.model_status[fitted_model.name]["message"] = "saving"
             print("Saving model...", flush=True)
-            print(f"something about model: {fitted_model.model}")
             self.model_repository.upsert_model(fitted_model)
             self.model_status[fitted_model.name]["message"] = "saved"
         
-        self.busy("Forecasting")
-        self.forecaster._run(historical, horizon)
         self.idle()
 

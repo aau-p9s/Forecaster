@@ -1,7 +1,7 @@
 from multiprocessing import Value
 from pandas import Timedelta
-from Database.Models.Forecast import Forecast
-from Database.Models.Historical import Historical
+from Database.Entities.Forecast import Forecast
+from Database.Entities.Historical import Historical
 from ML.Darts.Utils.MLManager import MLManager
 from ML.Forecaster.predict import predict_all
 
@@ -23,7 +23,7 @@ class Forecaster(MLManager):
 
         print(f"Forecasts count: {len(forecasts)}", flush=True)
         forecast = min(forecasts, key=lambda x: x.error)
-        self.forecast_repository.upsert_forecast(forecast, self.service_id)
+        self.forecast_repository.upsert_forecast(forecast)
         self.idle()
 
         return forecast

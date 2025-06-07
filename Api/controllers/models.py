@@ -7,7 +7,7 @@ from Utils.variables import api, model_repository
 class Models(Resource):
     @api.doc(responses={200:"ok"})
     def get(self):
-        modelNames = list(map(str, model_repository.get_all_models()))
+        modelNames = list(map(lambda model: model.name, model_repository.all()))
         return Response(status=200, response=dumps({"message": "All models", "models":modelNames}))
 
 

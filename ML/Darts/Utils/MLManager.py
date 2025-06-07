@@ -6,9 +6,9 @@ from darts import TimeSeries
 from darts.dataprocessing.transformers.scaler import Scaler
 from pandas import Timedelta
 
+from Database.Entities.Historical import Historical
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
-from Database.Models.Historical import Historical
 from Database.SettingsRepository import SettingsRepository
 from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_pipeline
 
@@ -20,6 +20,9 @@ class MLManager:
 
     def busy(self, message: str = "Busy"):
         self.status.set(message)
+
+    def is_idle(self):
+        return self.status.get() == "Idle"
 
     def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
         self.service_id = service_id

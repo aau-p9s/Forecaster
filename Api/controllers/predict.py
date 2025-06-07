@@ -4,7 +4,7 @@ from flask import Response
 from flask_restx import Resource
 import pandas as pd
 
-from Database.Models.Historical import Historical
+from Database.Entities.Historical import Historical
 from ML.Forecaster.Forecaster import Forecaster
 from Utils.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes, num_gpus, launch_lock
 
@@ -16,7 +16,7 @@ class Predict(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500: "something died..."})
     def post(self, service_id:str, horizon: int=12):
         launch_lock.acquire()
-        services = service_repository.get_all_services()
+        services = service_repository.all()
         gpu_id = len(list(filter(lambda trainer: trainer._process.is_alive(), forecasters.values()))) % num_gpus
         if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
@@ -36,7 +36,7 @@ class Predict(Resource):
 
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
     def get(self, service_id: str, horizon: int):
-        return status_codes[forecasters[service_id]._process.is_alive()]
+        return status_codes[forecasters[service_id].is_idle()]
 
 @api.route("/predict/<string:service_id>/kill")
 class PredictKill(Resource):

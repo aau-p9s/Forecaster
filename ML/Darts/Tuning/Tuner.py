@@ -3,6 +3,7 @@ import torch
 import darts.models as models
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
+from Database.Entities.Model import Model
 from Database.ModelRepository import ModelRepository
 from Database.Utils import gen_uuid
 from .hyperparameters import HyperParameterConfig, encode_time, ENCODERS
@@ -24,7 +25,6 @@ import ML.Darts.Utils.preprocessing as preprocessing
 from .handle_covariates import *
 from darts import TimeSeries
 from ..Utils.preprocessing import *
-from Database.Models.Model import Model
 import pdb
 import json
 import matplotlib.pyplot as plt

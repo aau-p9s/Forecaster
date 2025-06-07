@@ -12,9 +12,12 @@ if "--help" in sys.argv:
 # END CURSED STUFF
 import torch
 from Api.api import *
+from Utils.variables import forecast_repository, historical_repository, clear_data
 from ML.Darts.Utils.models import PositiveGaussianLikelihood
 
-
+if clear_data:
+    forecast_repository.delete_all()
+    historical_repository.delete_all()
 
 if __name__ == '__main__':
     #torch.set_float32_matmul_precision('high')

@@ -4,7 +4,7 @@ from flask import Response
 from flask_restx import Resource
 import pandas as pd
 
-from Database.Models.Historical import Historical
+from Database.Entities.Historical import Historical
 from ML.Trainer.Trainer import Trainer
 from Utils.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository, num_gpus, launch_lock
 
@@ -15,7 +15,7 @@ class Train(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={200:"ok", 202:"working", 500:"Something ML died!!!!"})
     def post(self, service_id:str, horizon: int=12):
         launch_lock.acquire()
-        services = service_repository.get_all_services()
+        services = service_repository.all()
         if not service_id in [str(service.id) for service in services]:
             return Response(status=400, response="Error, service doesn't exist")
         gpu_id = len(list(filter(lambda trainer: trainer._process.is_alive(), trainers.values()))) % num_gpus
@@ -38,7 +38,7 @@ class Train(Resource):
 
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
     def get(self, service_id: str, horizon: int):
-        return status_codes[trainers[service_id].status.get() == "Busy"]
+        return status_codes[trainers[service_id].is_idle()]
 
 
 @api.route("/train/<string:service_id>/kill")

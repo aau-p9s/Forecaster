@@ -3,11 +3,12 @@ from darts.utils import missing_values
 from darts.models import KalmanFilter
 from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import MinMaxScaler
-from Database.Models.Historical import Historical
 from darts import TimeSeries
 import pandas as pd
 import numpy as np
 from darts.utils.missing_values import fill_missing_values
+
+from Database.Entities.Historical import Historical
 
 def handle_missing_values(timeseries):
     ratio = missing_values.missing_values_ratio(timeseries)

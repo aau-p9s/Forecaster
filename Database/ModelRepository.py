@@ -1,87 +1,36 @@
 from datetime import datetime
 from pickle import UnpicklingError
-import tempfile
 from uuid import UUID
-from darts.models.forecasting.forecasting_model import ForecastingModel
+from Database.Entities.Model import Model
+from Database.Repository import Repository
 from Database.dbhandler import DbConnection
 import psycopg2
-from Database.Utils import gen_uuid
-from Database.Models.Model import Model
-import torch
-from darts.models.forecasting.forecasting_model import ForecastingModel
-from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 import traceback
 
-from Utils.getEnv import getEnv
+from ML.Darts.Utils.load_model import load_model
 
-enable_gpu = getEnv("FORECASTER__ENABLE__GPU", "1") == "1"
-model_tmpdir = getEnv("FORECASTER__TEMPORARY__DIRECTORY", "/dev/shm")
-
-
-class ModelRepository:
+class ModelRepository(Repository[Model]):
+    _class = Model
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_all_models_by_service(self, serviceId:UUID, gpu_id: int = 0) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin, ckpt from models WHERE "serviceid" = %s;', [str(serviceId)])
+    def get_all_models_by_service(self, service_id:UUID, gpu_id: int = 0) -> list[Model]:
+        rows = self.db.execute_get('SELECT id, name, bin, ckpt, trainedat from models WHERE "serviceid" = %s;', [str(service_id)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
         
         models = []
         for row in rows:
             try:
-                models.append(Model(UUID(row[0]), row[1], load_model(row[1], row[2], row[3], gpu_id = gpu_id), serviceId))
+                models.append(Model(row[1], service_id, load_model(row[1], row[2], row[3], gpu_id = gpu_id), row[4]).with_id(UUID(row[0])))
             except UnpicklingError as e:
                 traceback.print_exception(e)
                 print(f"Model {row[1]} failed to load {e}", flush=True)
         return models
 
-    def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin, ckpt FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
-        if len(rows) > 0:
-            row = rows[0]
-            modelObj = load_model(row[1], row[2], row[3])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
-        raise psycopg2.DatabaseError
-    
-    def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin, ckpt FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
-        if len(rows) > 0:
-            row = rows[0]
-            modelObj = load_model(row[1], row[2], row[3])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
-        raise psycopg2.DatabaseError
-
-    def get_all_models(self) -> list[UUID]:
-        return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]
-
-    def insert_model(self, model:Model):
-        self.db.execute('INSERT INTO models (id, name, bin, trainedat, serviceid) VALUES (%s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId)])
-
     def upsert_model(self, model:Model) -> None:
-        self.db.execute("UPDATE models SET bin = %s, trainedat = %s where id = %s", [model.get_binary(), datetime.now(), str(model.modelId)])
+        model_bin, ckpt_bin = model.get_binary()
+        self.db.execute("UPDATE models SET bin = %s, trainedat = %s, ckpt = %s where id = %s", [model_bin, datetime.now(), ckpt_bin, str(model.id)])
 
-def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0) -> ForecastingModel:
-    with tempfile.TemporaryDirectory(dir=model_tmpdir) as directory:
-        if ckpt is not None:
-            with open(f"{directory}/{name}.pth.ckpt", "wb") as file:
-                file.write(ckpt)
-        with open(f"{directory}/{name}.pth", "wb") as file:
-            file.write(data)
-        try:
-            device = torch.device(f"cuda:{gpu_id}" if enable_gpu else "cpu")
-            model = TorchForecastingModel.load(f"{directory}/{name}.pth", map_location=device)
-            if not enable_gpu:
-                model.to_cpu()
-            else:
-                model.trainer_params['devices'] = [gpu_id]
-                model.trainer_params['accelerator'] = "gpu"
-        except Exception as e1:
-            try:
-                model = ForecastingModel.load(f"{directory}/{name}.pth")
-            except Exception as e2:
-                traceback.print_exception(e1)
-                traceback.print_exception(e2)
-                raise UnpicklingError
-        return model 
-
+    def table_name(self) -> str:
+        return super().table_name() + "s"
