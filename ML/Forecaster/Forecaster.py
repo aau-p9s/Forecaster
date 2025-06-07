@@ -3,7 +3,7 @@ from pandas import Timedelta
 from Database.Entities.Forecast import Forecast
 from Database.Entities.Historical import Historical
 from ML.Darts.Utils.MLManager import MLManager
-from ML.Forecaster.predict import predict_all
+from ML.Forecaster.predict import predict_all, validate_model
 
 class Forecaster(MLManager):
     def __init__(self, *args, **kwargs):
@@ -19,7 +19,8 @@ class Forecaster(MLManager):
         models = self.model_repository.get_all_models_by_service(self.service_id, gpu_id)
         self.total.set(len(models))
         self.finished.set(0)
-        forecasts:list[Forecast] = predict_all(models, series, scaler, settings.scale_period, horizon, self.finished)
+        valid_models = list(filter(validate_model, models))
+        forecasts:list[Forecast] = predict_all(valid_models, series, scaler, settings.scale_period, horizon, self.finished, self.get_cores())
 
         print(f"Forecasts count: {len(forecasts)}", flush=True)
         forecast = min(forecasts, key=lambda x: x.error)

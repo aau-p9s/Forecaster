@@ -26,7 +26,7 @@ class Predict(Resource):
             print("!!! WARNING !!! No data in historical table, this should not happen")
 
         if not service_id in forecasters:
-            forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository, settings_repository)
+            forecasters[service_id] = Forecaster(UUID(service_id), model_repository, forecast_repository, settings_repository, service_repository)
         elif forecasters[service_id]._process.is_alive():
             return Response(status=202, response="Still working...")
 

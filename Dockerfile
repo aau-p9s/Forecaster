@@ -9,6 +9,7 @@ COPY Api ./Api
 COPY Database ./Database 
 COPY ML ./ML
 COPY Utils ./Utils
+COPY Tests ./Tests
 COPY app.py .
 
 

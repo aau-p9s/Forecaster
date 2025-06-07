@@ -21,7 +21,7 @@ class Train(Resource):
             return Response(status=400, response="Error, service doesn't exist")
         gpu_id = len(list(filter(lambda trainer: trainer._process.is_alive(), trainers.values()))) % num_gpus
         if not service_id in trainers:
-            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository)
+            trainers[service_id] = Trainer(UUID(service_id), model_repository, forecast_repository, settings_repository, service_repository)
         elif trainers[service_id]._process.is_alive():
             return Response(status=202, response="Still working...")
 

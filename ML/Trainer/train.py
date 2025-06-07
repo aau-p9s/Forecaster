@@ -1,8 +1,7 @@
 from datetime import datetime
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 from multiprocessing.managers import DictProxy
 from time import time
-from math import ceil
 import traceback
 
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
@@ -10,7 +9,6 @@ from darts.timeseries import TimeSeries
 from Database.Entities.Model import Model
 from ML.Darts.Utils.split_models import split_models
 from ML.Darts.Utils.timeout import timeout
-from Utils.repositories import service_repository
 
 
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
@@ -34,10 +32,9 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
         traceback.print_exc()
         return None
 
-def train_models(models: list[Model], series: TimeSeries, model_status: DictProxy) -> list[Model]:
-    service_count = len(list(filter(lambda service: service.autoscaling_enabled, service_repository.all())))
+def train_models(models: list[Model], series: TimeSeries, model_status: DictProxy, cpu_count) -> list[Model]:
     (n_models, t_models) = split_models(models)
-    with Pool(ceil(cpu_count()/(service_count*2))) as pool:
+    with Pool(cpu_count) as pool:
         trained_models = pool.starmap(train_model, [(model, series.copy(), model_status) for model in n_models])
     for model in t_models:
         trained_models.append(train_model(model, series, model_status))

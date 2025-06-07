@@ -21,7 +21,7 @@ class Trainer(MLManager):
         for model in models:
             self.model_status[model.name] = self.manager.dict({ "message": "waiting", "error": None, "start_time": None, "end_time": None })
 
-        fitted_models = train_models(models, train_series, self.model_status)
+        fitted_models = train_models(models, train_series, self.model_status, self.get_cores())
 
         print("Finished training", flush=True)
 

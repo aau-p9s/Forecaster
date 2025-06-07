@@ -75,14 +75,40 @@ def unscaling_pipeline(timeseries: TimeSeries, scaler: Scaler, period: pd.Timede
     cleaned_timeseries = TimeSeries.from_dataframe(resampled_timeseries.pd_dataframe().dropna())
     return cleaned_timeseries
 
-def load_historical_data(data:Historical, period:pd.Timedelta) -> TimeSeries:
+def load_data(data: str | list[tuple[float, int]], granularity=None):
+    """
+    Args:
+        data_path (str): Path to csv
+        granularity (str): The interval between each timestamp. Must be one of these: https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+    """
+    if isinstance(data, str) and data.endswith(".csv"):  # For CSV
+        df = pd.read_csv(data)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+    else:
+        if isinstance(data[0][0], (int, float)):
+            data_no_decimals = [(int(timestamp), value) for timestamp, value in data]
+            df = pd.DataFrame(
+                data_no_decimals, columns=pd.Index(["timestamp", "value"])
+            )  # For json with unix epoch time
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+        else:
+            df = pd.DataFrame(
+                data, columns=pd.Index(["timestamp", "value"])
+            )  # For json with format YYYY-MM-DD HH:MM
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+    ts = TimeSeries.from_dataframe(
+        df, time_col="timestamp", value_cols=df.columns[1:].tolist(), freq=granularity
+    )
+    return ts
+
+def load_historical_data(data:Historical, horizon:pd.Timedelta) -> TimeSeries:
     series = {
         "timestamp": [datetime.fromtimestamp(value[0]) for value in data.data["data"]["result"][0]["values"]],
         "value": [float(value[1]) for value in data.data["data"]["result"][0]["values"]]
     }
     df = pd.DataFrame(series)
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
-    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', fill_missing_dates=True, freq=f"{int(period.total_seconds()/60)}s").astype("float32")
+    final_series = TimeSeries.from_dataframe(df, time_col='timestamp', value_cols='value', fill_missing_dates=True, freq=f"{int(horizon.total_seconds()/60)}s").astype("float32")
     return final_series
 
 

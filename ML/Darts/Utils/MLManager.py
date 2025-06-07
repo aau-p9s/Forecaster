@@ -1,4 +1,4 @@
-from multiprocessing import Process
+from multiprocessing import Process, cpu_count
 import multiprocessing as mp
 from uuid import UUID
 
@@ -9,6 +9,7 @@ from pandas import Timedelta
 from Database.Entities.Historical import Historical
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
+from Database.ServiceRepository import ServiceRepository
 from Database.SettingsRepository import SettingsRepository
 from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_pipeline
 
@@ -24,11 +25,12 @@ class MLManager:
     def is_idle(self):
         return self.status.get() == "Idle"
 
-    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository) -> None:
+    def __init__(self, service_id:UUID, model_repository:ModelRepository, forecast_repository:ForecastRepository, settings_repository:SettingsRepository, service_repository: ServiceRepository) -> None:
         self.service_id = service_id
         self.model_repository = model_repository
         self.forecast_repository = forecast_repository
         self.settings_repository = settings_repository
+        self.service_repository = service_repository
         self.status = self.manager.Value(str, "Busy")
         self._process: Process
 
@@ -56,3 +58,7 @@ class MLManager:
         print(f"mssing_value_ratio:         {missing_value_ratio}", flush=True)
         print(f"scaler:                     {scaler}", flush=True)
         return train_series, validation_series, scaler
+
+    def get_cores(self) -> int:
+        service_count = len(list(filter(lambda service: service.autoscaling_enabled, self.service_repository.all())))
+        return int(cpu_count()/(service_count*2))

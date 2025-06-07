@@ -43,6 +43,7 @@
                 flask
                 flask-restx
                 optuna
+                pytest
                 # unstable shit
                 darts
             ]);
