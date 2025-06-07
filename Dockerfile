@@ -6,11 +6,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY Api ./Api 
-COPY Assets/test_data.csv ./Assets
-COPY Assets/test_model.pth ./Assets
 COPY Database ./Database 
 COPY ML ./ML
 COPY Utils ./Utils
+COPY Tests ./Tests
 COPY app.py .
 
 

@@ -1,5 +1,5 @@
 from flask_restx import fields
-from .variables import api
+from Utils.variables import api
 
 time_series_data = api.model("Time series model", {
     "timestamp": fields.List(fields.DateTime),

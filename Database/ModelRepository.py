@@ -1,43 +1,36 @@
-from datetime import date, datetime
-from time import time
+from datetime import datetime
+from pickle import UnpicklingError
 from uuid import UUID
-import cloudpickle as pickle
+from Database.Entities.Model import Model
+from Database.Repository import Repository
 from Database.dbhandler import DbConnection
 import psycopg2
-from Database.Utils import gen_uuid
-from Database.Models.Model import Model
+import traceback
 
-class ModelRepository:
+from ML.Darts.Utils.load_model import load_model
+
+class ModelRepository(Repository[Model]):
+    _class = Model
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_all_models_by_service(self, serviceId:UUID) -> list[Model]:
-        rows = self.db.execute_get('SELECT id, name, bin from models WHERE "serviceid" = %s;', [str(serviceId)])
+    def get_all_models_by_service(self, service_id:UUID, gpu_id: int = 0) -> list[Model]:
+        rows = self.db.execute_get('SELECT id, name, bin, ckpt, trainedat from models WHERE "serviceid" = %s;', [str(service_id)])
         if len(rows) == 0:
             raise psycopg2.DatabaseError
-        return [Model(UUID(row[0]), row[1], pickle.loads(row[2]), serviceId) for row in rows]
-
-    def get_by_modelname_and_service(self, modelName:str, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Name" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [modelName, str(serviceId)])
-        if len(rows) > 0:
-            row = rows[0]
-            modelObj = pickle.loads(row[2])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
-        raise psycopg2.DatabaseError
-    
-    def get_by_modelid_and_service(self, modelId:UUID, serviceId:UUID) -> Model:
-        rows = self.db.execute_get('SELECT id, name, bin FROM models WHERE "Id" = %s AND "ServiceId" = %s ORDER BY "trainedat" ASC LIMIT 1;', [str(modelId), str(serviceId)])
-        if len(rows) > 0:
-            row = rows[0]
-            modelObj = pickle.loads(row[2])
-            return Model(UUID(row[0]), row[1], modelObj, serviceId)
-        raise psycopg2.DatabaseError
-
-    def get_all_models(self) -> list[UUID]:
-        return [UUID(row[0]) for row in self.db.execute_get('SELECT id from models')]
-
-    def insert_model(self, model:Model):
-        self.db.execute('INSERT INTO models ("id", "name", "bin", "trainedat", "serviceid", "scaler") VALUES (%s, %s, %s, %s, %s, %s)', [str(gen_uuid()), type(model.model).__name__, model.get_binary(), model.trainedTime, str(model.serviceId), model.scaler])
+        
+        models = []
+        for row in rows:
+            try:
+                models.append(Model(row[1], service_id, load_model(row[1], row[2], row[3], gpu_id = gpu_id), row[4]).with_id(UUID(row[0])))
+            except UnpicklingError as e:
+                traceback.print_exception(e)
+                print(f"Model {row[1]} failed to load {e}", flush=True)
+        return models
 
     def upsert_model(self, model:Model) -> None:
-        self.db.execute("UPDATE models SET bin = %s, trainedat = %s", [model.get_binary(), datetime.now()])
+        model_bin, ckpt_bin = model.get_binary()
+        self.db.execute("UPDATE models SET bin = %s, trainedat = %s, ckpt = %s where id = %s", [model_bin, datetime.now(), ckpt_bin, str(model.id)])
+
+    def table_name(self) -> str:
+        return super().table_name() + "s"

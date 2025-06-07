@@ -1,12 +1,8 @@
-import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from darts.models.forecasting.forecasting_model import LocalForecastingModel
 from darts.metrics import rmse
-from darts.timeseries import TimeSeries
-import numpy as np
-import inspect
 
 # An ensemble model should be created using the best models found in the tuning process to check if the ensemble model can improve the forecast
 class EnsembleTrainer:

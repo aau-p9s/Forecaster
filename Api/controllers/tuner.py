@@ -2,13 +2,11 @@ from json import dumps
 from flask import Response, request
 from flask_restx import Resource
 
-from Database.Models.Model import Model
-from Database.Utils import gen_uuid
 from ML.Darts.Tuning.Tuner import Tuner
 from ML.Darts.Utils import preprocessing
 from ..lib.models import tuning_model
-from ..lib.variables import api
-from ..lib.variables import model_repository, forecasters, forecast_repository, historical_repository
+from Utils.variables import api
+from Utils.repositories import model_repository
 
 
 @api.route("/tuner/<string:serviceId>/<string:modelId>")
