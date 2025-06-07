@@ -11,6 +11,7 @@ from darts.models.forecasting.forecasting_model import ForecastingModel
 
 from Database.Entities.Entity import Entity
 from ML.Darts.Utils.load_model import load_model
+from Utils.variables import temporary_directory
 
 class Model(Entity[str, str, bytes, bytes|None, datetime]):
     def __init__(self, name: str, service_id:UUID, model:ForecastingModel, trained_at: datetime = datetime.now(), scaler=Scaler(MinMaxScaler(feature_range=(0, 1)))):
@@ -22,7 +23,7 @@ class Model(Entity[str, str, bytes, bytes|None, datetime]):
         super().__init__()
 
     def get_binary(self) -> tuple[bytes, bytes|None]:
-        with tempfile.TemporaryDirectory(dir="/dev/shm") as directory:
+        with tempfile.TemporaryDirectory(dir=temporary_directory) as directory:
             self.model.save(f"{directory}/model.pth")
             with open(f"{directory}/model.pth", "rb") as file:
                 model_bin = file.read()

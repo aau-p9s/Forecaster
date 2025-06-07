@@ -12,7 +12,8 @@ if "--help" in sys.argv:
 # END CURSED STUFF
 import torch
 from Api.api import *
-from Utils.variables import forecast_repository, historical_repository, clear_data
+from Utils.variables import clear_data
+from Utils.repositories import forecast_repository, historical_repository
 from ML.Darts.Utils.models import PositiveGaussianLikelihood
 
 if clear_data:

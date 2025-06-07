@@ -48,7 +48,6 @@
             ]);
             monitor = pkgs.writeScriptBin "monitor" ''
                 #!${pkgs.bash}/bin/bash
-                set -e
                 tput smcup
                 trap 'tput rmcup; exit' INT
 

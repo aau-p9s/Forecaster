@@ -1,7 +1,8 @@
 from json import dumps
 from flask import Response
 from flask_restx import Resource
-from Utils.variables import api, model_repository
+from Utils.variables import api
+from Utils.repositories import model_repository
 
 @api.route("/models")
 class Models(Resource):

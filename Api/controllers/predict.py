@@ -6,7 +6,8 @@ import pandas as pd
 
 from Database.Entities.Historical import Historical
 from ML.Forecaster.Forecaster import Forecaster
-from Utils.variables import api, model_repository, forecast_repository, historical_repository, settings_repository, service_repository, status_codes, num_gpus, launch_lock
+from Utils.variables import api, status_codes, num_gpus, launch_lock
+from Utils.repositories import service_repository, historical_repository, model_repository, forecast_repository, settings_repository
 
 forecasters:dict[str, Forecaster] = {}
 
@@ -34,8 +35,10 @@ class Predict(Resource):
         launch_lock.release()
         return Response(status=200, response=dumps({"message": f"Forecasts finished for {service_id}"}))
 
+@api.route("/predict/<string:service_id>")
+class PredictStatus(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
-    def get(self, service_id: str, horizon: int):
+    def get(self, service_id: str):
         return status_codes[forecasters[service_id].is_idle()]
 
 @api.route("/predict/<string:service_id>/kill")

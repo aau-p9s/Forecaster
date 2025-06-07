@@ -11,10 +11,11 @@ import pandas as pd
 from Database.Entities.Forecast import Forecast
 from Database.Entities.Model import Model
 from ML.Darts.Utils.preprocessing import unscaling_pipeline
+from ML.Darts.Utils.split_models import split_models
 from ML.Darts.Utils.timeout import timeout
-from Utils.variables import service_repository
+from Utils.repositories import service_repository
 
-def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta, horizon: Timedelta, finished: ValueProxy):
+def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta, horizon: Timedelta, finished: ValueProxy) -> Forecast | None:
     try:
         print(f"Predicting for period: {period} seconds", flush=True)
 
@@ -33,17 +34,20 @@ def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta,
         if not isinstance(forecast_rmse, float):
             raise ValueError(f"Error, rmse is wrong type: {type(forecast_rmse).__name__}")
         return Forecast(model.service_id, datetime.now(), model.id, unscaled_forecast, False, forecast_rmse)
+    except TimeoutError:
+        print(f"Model {model.name} timed out, continuing to next model:", flush=True)
     except Exception as e:
         traceback.print_exc()
         print(f"Model {model.name} failed, continuing to next model: {e}", flush=True)
 
 
-    return timeout(model.model.predict, int(period.total_seconds()))
-
-def predict_all(models: list[Model], series: TimeSeries, scaler: Scaler, period: Timedelta, horizon: Timedelta, finished: ValueProxy):
+def predict_all(models: list[Model], series: TimeSeries, scaler: Scaler, period: Timedelta, horizon: Timedelta, finished: ValueProxy) -> list[Forecast]:
     service_count = len(list(filter(lambda service: service.autoscaling_enabled, service_repository.all())))
+    (n_models, t_models) = split_models(models)
     with Pool(int(cpu_count()/(service_count*2))) as pool:
-        predictions = pool.starmap(predict, [(model, series, scaler, period, horizon, finished) for model in models])
+        predictions = pool.starmap(predict, [(model, series, scaler, period, horizon, finished) for model in n_models])
+    for model in t_models:
+        predictions.append(predict(model, series, scaler, period, horizon, finished))
     successful_predictions = []
     for prediction in predictions:
         if prediction is not None:

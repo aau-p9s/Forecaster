@@ -72,7 +72,8 @@ def unscaling_pipeline(timeseries: TimeSeries, scaler: Scaler, period: pd.Timede
     if not isinstance(inverse_timeseries, TimeSeries):
         raise ValueError("TimeSeries is not a TimeSeries")
     resampled_timeseries = inverse_timeseries.resample(freq=f"{int(period.total_seconds())}s")
-    return resampled_timeseries
+    cleaned_timeseries = TimeSeries.from_dataframe(resampled_timeseries.pd_dataframe().dropna())
+    return cleaned_timeseries
 
 def load_historical_data(data:Historical, period:pd.Timedelta) -> TimeSeries:
     series = {

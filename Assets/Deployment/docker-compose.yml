@@ -23,7 +23,8 @@ services:
       FORECASTER__ADDR: 0.0.0.0
       FORECASTER__PORT: 8080
       FORECASTER__TRAIN__TIMEOUT: 45
-      FORECASTER__TEMPORARY_DIRECTORY: /var/model_tmp
+      FORECASTER__TEMPORARY__DIRECTORY: /var/model_tmp
+      FORECASTER__ENABLE__GPU: 0
     ports:
       - "8080:8080"
     volumes:

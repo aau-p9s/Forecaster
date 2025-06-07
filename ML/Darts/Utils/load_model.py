@@ -6,13 +6,12 @@ from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 import torch
 
-from Utils.getEnv import getEnv
+from Utils.variables import temporary_directory, enable_gpu
 
-enable_gpu = getEnv("FORECASTER__ENABLE__GPU", "1") == "1"
-model_tmpdir = getEnv("FORECASTER__TEMPORARY__DIRECTORY", "/dev/shm")
+
 
 def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0) -> ForecastingModel:
-    with tempfile.TemporaryDirectory(dir=model_tmpdir) as directory:
+    with tempfile.TemporaryDirectory(dir=temporary_directory) as directory:
         if ckpt is not None:
             with open(f"{directory}/{name}.pth.ckpt", "wb") as file:
                 file.write(ckpt)

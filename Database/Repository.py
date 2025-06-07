@@ -45,7 +45,10 @@ class Repository(Generic[T]):
 
     def insert(self, entity: T):
         row = entity.to_row()
-        self.db.execute(f"INSERT INTO {self.table_name()} VALUES ({'%s'*len(row)})", row)
+        self.db.execute(f"INSERT INTO {self.table_name()} VALUES ({'%s, '*(len(row)-1)}%s)", row)
 
     def table_name(self) -> str:
         return self._class.__name__.lower()
+
+    def __len__(self) -> int:
+        return self.db.execute_get(f"SELECT count(id) FROM {self.table_name()}")[0][0]

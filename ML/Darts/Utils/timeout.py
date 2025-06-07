@@ -3,7 +3,7 @@ from Utils.variables import train_timeout
 import traceback
 
 def signal_handler(arg1, arg2):
-    raise RuntimeError("Timed out!")
+    raise TimeoutError("Timed out!")
 
 def timeout_decorator(time=train_timeout):
     def outer_wrapper(f):
@@ -30,7 +30,7 @@ def timeout(f, *args, **kwargs):
         signal.alarm(train_timeout)
     try:
         return f(*args, **kwargs)
-    except RuntimeError as e:
+    except TimeoutError as e:
         raise e
     except Exception as e:
         traceback.print_exc()

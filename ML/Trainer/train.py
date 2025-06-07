@@ -8,8 +8,9 @@ import traceback
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.timeseries import TimeSeries
 from Database.Entities.Model import Model
+from ML.Darts.Utils.split_models import split_models
 from ML.Darts.Utils.timeout import timeout
-from Utils.variables import service_repository
+from Utils.repositories import service_repository
 
 
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
@@ -18,7 +19,7 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
         print(f"Training {model.name}", flush=True)
         model_status[model.name]["start_time"] = time()
         if isinstance(model.model, TorchForecastingModel):
-            fitted_model = timeout(model.model.fit, dataloader_kwargs={ "num_workers": 12 })
+            fitted_model = timeout(model.model.fit, series, dataloader_kwargs={ "num_workers": 12 })
         else:
             fitted_model = timeout(model.model.fit, series)
         model_status[model.name]["message"] = "finished"
@@ -35,8 +36,11 @@ def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Mo
 
 def train_models(models: list[Model], series: TimeSeries, model_status: DictProxy) -> list[Model]:
     service_count = len(list(filter(lambda service: service.autoscaling_enabled, service_repository.all())))
+    (n_models, t_models) = split_models(models)
     with Pool(ceil(cpu_count()/(service_count*2))) as pool:
-        trained_models = pool.starmap(train_model, [(model, series.copy(), model_status) for model in models])
+        trained_models = pool.starmap(train_model, [(model, series.copy(), model_status) for model in n_models])
+    for model in t_models:
+        trained_models.append(train_model(model, series, model_status))
     successful_models = []
     for model in trained_models:
         if model is not None:

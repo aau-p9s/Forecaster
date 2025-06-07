@@ -6,7 +6,8 @@ import pandas as pd
 
 from Database.Entities.Historical import Historical
 from ML.Trainer.Trainer import Trainer
-from Utils.variables import model_repository, api, forecast_repository, historical_repository, settings_repository, status_codes, service_repository, num_gpus, launch_lock
+from Utils.variables import api, status_codes, num_gpus, launch_lock
+from Utils.repositories import model_repository, forecast_repository, settings_repository, service_repository, historical_repository
 
 trainers:dict[str, Trainer] = {}
 
@@ -36,10 +37,11 @@ class Train(Resource):
         launch_lock.release()
         return Response(status=200, response=dumps({"message":f"Training started for {service_id}"}))
 
+@api.route("/train/<string:service_id>")
+class TrainStatus(Resource):
     @api.doc(params={"service_id":"your-service-id"}, responses={code.status: str(res) for res, code in status_codes.items()})
-    def get(self, service_id: str, horizon: int):
+    def get(self, service_id: str):
         return status_codes[trainers[service_id].is_idle()]
-
 
 @api.route("/train/<string:service_id>/kill")
 class TrainKill(Resource):

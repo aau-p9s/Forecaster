@@ -5,7 +5,8 @@ from flask_restx import Resource
 from ML.Darts.Tuning.Tuner import Tuner
 from ML.Darts.Utils import preprocessing
 from ..lib.models import tuning_model
-from Utils.variables import model_repository, forecasters, forecast_repository, historical_repository, api
+from Utils.variables import api
+from Utils.repositories import model_repository
 
 
 @api.route("/tuner/<string:serviceId>/<string:modelId>")
