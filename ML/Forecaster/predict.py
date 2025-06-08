@@ -5,7 +5,7 @@ import traceback
 from darts.dataprocessing.transformers.scaler import Scaler
 from darts.metrics.metrics import rmse
 from darts.timeseries import TimeSeries
-from pandas import Timedelta
+from pandas import DatetimeIndex, Timedelta
 import pandas as pd
 import numpy as np
 
@@ -22,8 +22,17 @@ def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta,
         # scale to seconds, and scale slightly more to adjust for the validation series during training
         trained_frequency = model.get_trained_frequency(default=pd.to_timedelta("1m"))
         print(f"Trained frequency: {trained_frequency}")
-        prediction_period = int(period / trained_frequency) * 2
-        forecast = timeout(model.model.predict, prediction_period)
+        if model.model.training_series is None:
+            print("WARNING no training series has been provided, this might return a shitty forecast", flush=True)
+            forecast = timeout(model.model.predict, (period / trained_frequency) * 2)
+        else:
+            start = model.model.training_series.time_index[-1]
+            if not isinstance(start, DatetimeIndex):
+                raise ValueError("fuck pandas")
+            end = datetime.now() + (period * 2)
+            prediction_period = end - start
+            final_period = int(prediction_period / trained_frequency)
+            forecast = timeout(model.model.predict, final_period)
 
         print("Created forecast", flush=True)
         forecast_rmse = rmse(series, forecast)
