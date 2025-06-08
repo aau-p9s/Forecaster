@@ -1,4 +1,3 @@
-from multiprocessing import Value
 from pandas import Timedelta
 from Database.Entities.Forecast import Forecast
 from Database.Entities.Historical import Historical
