@@ -27,11 +27,15 @@ def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta,
 
         print("Created forecast", flush=True)
         forecast_rmse = rmse(series, forecast)
+        if isinstance(forecast_rmse, list):
+            raise ValueError("wtf")
+        fixed_rmse = np.float32(forecast_rmse)
         print("Calculated RMSE", flush=True)
         unscaled_forecast = unscaling_pipeline(forecast, scaler, horizon)
         print(f"Pipeline output: length {len(unscaled_forecast)} for period {unscaled_forecast.time_index[0]} to {unscaled_forecast.time_index[-1]}", flush=True)
         finished.set(finished.get()+1)
-        return Forecast(model.service_id, datetime.now(), model.id, unscaled_forecast, False, forecast_rmse)
+        
+        return Forecast(model.service_id, datetime.now(), model.id, unscaled_forecast, False, fixed_rmse)
     except TimeoutError:
         print(f"Model {model.name} timed out, continuing to next model:", flush=True)
     except Exception as e:

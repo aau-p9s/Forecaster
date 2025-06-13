@@ -1,13 +1,14 @@
 from datetime import datetime
-from json import dumps
+from json import dumps, loads
 from typing import Any
+import numpy as np
 from uuid import UUID
 from darts import TimeSeries
 
 from Database.Entities.Entity import Entity
 
 class Forecast(Entity[str, str, datetime, str, bool]):
-    def __init__(self, service_id: UUID, created_at: datetime, model_id: UUID, forecast: TimeSeries, has_manual_change: bool, error:float=float('inf')):
+    def __init__(self, service_id: UUID, created_at: datetime, model_id: UUID, forecast: TimeSeries, has_manual_change: bool, error:np.float32=np.float32('inf')):
         self.forecast = forecast
         self.error = error
         self.model_id = model_id
@@ -17,7 +18,9 @@ class Forecast(Entity[str, str, datetime, str, bool]):
         super().__init__()
 
     def serialize(self) -> str:
-        return self.forecast.to_json()
+        data = loads(self.forecast.to_json())
+        data["rmse"] = float(self.error)
+        return dumps(data)
     
     @staticmethod
     def from_row(id, service_id, created_at, model_id, forecast, has_manual_change):
