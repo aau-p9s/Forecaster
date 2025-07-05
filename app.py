@@ -14,7 +14,7 @@ import torch
 from Api.api import *
 from Utils.variables import clear_data
 from Utils.repositories import forecast_repository, historical_repository
-from ML.Darts.Utils.models import PositiveGaussianLikelihood
+from ML.Utils.models import PositiveGaussianLikelihood
 
 if clear_data:
     forecast_repository.delete_all()

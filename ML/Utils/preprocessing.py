@@ -24,12 +24,6 @@ def handle_negative_values(timeseries: TimeSeries) -> TimeSeries:
     filtered = timeseries.drop_before(timeseries.time_index[mask][0])
     return filtered
 
-
-def denoiser(timeseries):
-    kf = KalmanFilter(dim_x=1)
-    kf.fit(timeseries)
-    return kf.filter(timeseries)
-
 def scaler(timeseries: TimeSeries) -> tuple[TimeSeries, Scaler]:
     transformer = Scaler(MinMaxScaler(feature_range=(0, 1)))
     scaled = transformer.fit_transform(timeseries)

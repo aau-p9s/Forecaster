@@ -11,9 +11,9 @@ import numpy as np
 
 from Database.Entities.Forecast import Forecast
 from Database.Entities.Model import Model
-from ML.Darts.Utils.preprocessing import unscaling_pipeline
-from ML.Darts.Utils.split_models import split_models
-from ML.Darts.Utils.timeout import timeout
+from ML.Utils.preprocessing import unscaling_pipeline
+from ML.Utils.split_models import split_models
+from ML.Utils.timeout import timeout
 
 def predict(model: Model, series: TimeSeries, scaler: Scaler, period: Timedelta, horizon: Timedelta, finished: ValueProxy) -> Forecast | None:
     try:

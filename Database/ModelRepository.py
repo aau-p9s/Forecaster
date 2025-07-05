@@ -7,7 +7,7 @@ from Database.dbhandler import DbConnection
 import psycopg2
 import traceback
 
-from ML.Darts.Utils.load_model import load_model
+from ML.Utils.load_model import load_model
 
 class ModelRepository(Repository[Model]):
     _class = Model

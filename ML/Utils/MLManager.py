@@ -11,7 +11,7 @@ from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
 from Database.ServiceRepository import ServiceRepository
 from Database.SettingsRepository import SettingsRepository
-from ML.Darts.Utils.preprocessing import load_historical_data, run_transformer_pipeline
+from ML.Utils.preprocessing import load_historical_data, run_transformer_pipeline
 
 class MLManager:
     manager = mp.Manager()

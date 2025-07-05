@@ -16,11 +16,10 @@ import darts.models as models
 from darts.models import RegressionEnsembleModel, NaiveEnsembleModel, NaiveSeasonal
 from darts.timeseries import TimeSeries
 import numpy as np
-from ML.Darts.Training.ensemble_training import EnsembleTrainer
 from unittest.mock import MagicMock
 from Database.ForecastRepository import ForecastRepository
 from Database.ModelRepository import ModelRepository
-from ML.Darts.Utils.preprocessing import run_transformer_pipeline
+from ML.Utils.preprocessing import run_transformer_pipeline
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -105,38 +104,6 @@ def pre_trained_global_models(sample_time_series):
     model4.fit(sample_time_series)
     
     return [model3, model4]
-
-
-@pytest.fixture
-def ensemble_training_local(pre_trained_local_models, sample_time_series):
-    """Returns an instance of EnsembleTraining with pre-trained models."""
-    train_series, val_series = sample_time_series.split_after(0.75)
-    return EnsembleTrainer(pre_trained_local_models, train_series, val_series, forecast_period=12)
-
-@pytest.fixture
-def ensemble_training_global(pre_trained_global_models, sample_time_series):
-    """Returns an instance of EnsembleTraining with pre-trained models."""
-    train_series, val_series = sample_time_series.split_after(0.75)
-    return EnsembleTrainer(pre_trained_global_models, train_series, val_series, forecast_period=12)
-
-
-def test_learned_ensemble_model(ensemble_training_global):
-    """Test RegressionEnsembleModel functionality."""
-    rmse_error, backtest, model = ensemble_training_global.create_learned_ensemble_model()
-    
-    assert isinstance(model, RegressionEnsembleModel)
-    assert backtest is not None
-    assert isinstance(rmse_error, float) and rmse_error is not None
-
-def test_naive_ensemble_model(ensemble_training_local):
-    """Test NaiveEnsembleModel functionality."""
-    rmse_error, backtest, model = ensemble_training_local.create_naive_ensemble_model()
-    
-    assert all(model._fit_called for model in ensemble_training_local.candidate_models)
-
-    assert isinstance(model, NaiveEnsembleModel)
-    assert backtest is not None
-    assert isinstance(rmse_error, float) and rmse_error >= 0
 
 def test_forecaster(forecast_repository:ForecastRepository, model_repository:ModelRepository, settings_repository, sample_time_series:TimeSeries, service_repository:ServiceRepository):
     trainer = Trainer(model.service_id, model_repository, forecast_repository, settings_repository, service_repository)

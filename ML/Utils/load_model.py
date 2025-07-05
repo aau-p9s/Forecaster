@@ -8,8 +8,6 @@ import torch
 
 from Utils.variables import temporary_directory, enable_gpu
 
-
-
 def load_model(name: str, data: bytes, ckpt: bytes|None = None, gpu_id: int = 0) -> ForecastingModel:
     with tempfile.TemporaryDirectory(dir=temporary_directory) as directory:
         if ckpt is not None:

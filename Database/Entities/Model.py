@@ -10,7 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
 from Database.Entities.Entity import Entity
-from ML.Darts.Utils.load_model import load_model
+from ML.Utils.load_model import load_model
 from Utils.variables import temporary_directory
 
 class Model(Entity[str, str, bytes, bytes|None, datetime]):
