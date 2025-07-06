@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 from darts import TimeSeries
-from ML.Darts.Utils.preprocessing import load_data, run_transformer_pipeline  # Make sure to import the function correctly from your module
+from ML.Utils.preprocessing import load_data, run_transformer_pipeline  # Make sure to import the function correctly from your module
 import numpy as np
 import re
 

@@ -1,7 +1,7 @@
 from pandas import Timedelta
 from Database.Entities.Forecast import Forecast
 from Database.Entities.Historical import Historical
-from ML.Darts.Utils.MLManager import MLManager
+from ML.Utils.MLManager import MLManager
 from ML.Forecaster.predict import predict_all, validate_model
 
 class Forecaster(MLManager):

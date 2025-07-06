@@ -1,6 +1,6 @@
 from pandas import Timedelta
 from Database.Entities.Historical import Historical
-from ML.Darts.Utils.MLManager import MLManager
+from ML.Utils.MLManager import MLManager
 from ML.Forecaster.Forecaster import Forecaster
 from ML.Trainer.train import train_models
 

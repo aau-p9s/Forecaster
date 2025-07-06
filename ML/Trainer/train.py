@@ -7,8 +7,8 @@ import traceback
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.timeseries import TimeSeries
 from Database.Entities.Model import Model
-from ML.Darts.Utils.split_models import split_models
-from ML.Darts.Utils.timeout import timeout
+from ML.Utils.split_models import split_models
+from ML.Utils.timeout import timeout
 
 
 def train_model(model: Model, series: TimeSeries, model_status: DictProxy) -> Model | None:
