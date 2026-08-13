@@ -1,20 +1,18 @@
-from json import loads
 from uuid import UUID
 
-from psycopg2 import DatabaseError
-from Database.Models.Settings import Setting
+from Database.Entities.Settings import Settings
+from Database.Repository import Repository
 from Database.dbhandler import DbConnection
 
-class SettingsRepository:
+class SettingsRepository(Repository[Settings]):
+    _class = Settings
     def __init__(self, db: DbConnection):
         self.db = db
 
-    def get_settings(self, service_id:UUID) -> Setting:
+    def get_settings(self, service_id:UUID) -> Settings:
         """Gets the current settings for the service."""
-        rows = self.db.execute_get('SELECT id, serviceid, scaleup, scaledown, minreplicas, maxreplicas, scaleperiod, traininterval FROM settings WHERE serviceid = %s;', [str(service_id)])
-        print(rows)
-        if len(rows) > 0:
-            row = rows[0]
-            return Setting(UUID(row[0]), UUID(row[1]), int(row[2]), int(row[3]), int(row[4]), int(row[5]), int(row[6]), int(row[7]))
-        raise DatabaseError(f"Error, settings table returned {len(rows)} rows: {rows} with service_id: {service_id}")
+        rows = self.get_by("serviceid", str(service_id))
+        if len(rows) == 0:
+            raise ValueError("Error, no settings for service")
+        return rows[0]
 
